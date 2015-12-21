@@ -18,7 +18,7 @@ pbChat is a lightweight BlueTooth chat application
 * first create a bluetooth server by running 'python basic_server.py'
 * then run 'python bluetooth_gui.py' and connect to it with via the servers address and port number
 * commence chatting
-* 
+
 ## Known Issues
 * Thread lockup when attempting to exit, sometimes.
 * GUI Lockup when connecting/hosting/etc
