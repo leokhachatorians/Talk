@@ -8,6 +8,7 @@ pbChat is a lightweight BlueTooth chat application
 * Implement discovering/inquiring
 * Better notifications on internal processes
 * Better chat
+* Actually add documentation
 * Anything else I can think of
 
 ## What You Need
