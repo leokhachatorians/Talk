@@ -2,13 +2,8 @@ import tkinter as tk
 import bluetooth as bt
 import multiprocessing
 import threading
-#from queue import Empty, Full
 import queue
 import time
-
-'http://stackoverflow.com/questions/13228763/using-multiprocessing-module-for-updating-tkinter-gui'
-SERVER = '5C:F3:70:75:AD:2E'
-PORT = 1
 
 class BlueToothClient(tk.Frame):
 	def __init__(self, root, q):
@@ -201,11 +196,3 @@ if __name__ == '__main__':
 	root = tk.Tk()
 	client = ThreadedClient(root)
 	root.mainloop()
-	# root = tk.Tk()
-	# q = multiprocessing.Queue()
-	# q.cancel_join_thread()
-	# app = BlueToothClient(root, q)
-	# print(app.sock)
-	# t1 = multiprocessing.Process(target=receive_message,args=(q,app.sock))
-	# t1.start()
-	# root.mainloop()
