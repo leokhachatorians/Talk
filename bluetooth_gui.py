@@ -4,18 +4,19 @@ import multiprocessing
 import threading
 import queue
 import time
+import sys
 
 class BlueToothClient(tk.Frame):
-	def __init__(self, root, q):
+	def __init__(self, root, queue, end_command):
 		self.root = root
-		self.q = q
+		self.queue = queue
 
 		# Menu Bar
 		self.menubar = tk.Menu(root)
 
 		# Add File Tab
 		self.file_menu = tk.Menu(self.menubar, tearoff=0)
-		self.file_menu.add_command(label='Exit')
+		self.file_menu.add_command(label='Exit',command=end_command)
 		self.menubar.add_cascade(label='File',menu=self.file_menu)
 
 		# Add BlueTooth Tab
@@ -38,6 +39,8 @@ class BlueToothClient(tk.Frame):
 		frame.pack()
 
 		self.sock = None
+		self.client_sock = None
+		self.client_info = None
 
 		# Chat Receive Display
 		self.chat_display = tk.Text(root, width=50)
@@ -94,7 +97,7 @@ class BlueToothClient(tk.Frame):
 
 	def check_queue(self):
 		try:
-			data = self.q.get(0).decode('utf-8')
+			data = self.queue.get(0).decode('utf-8')
 			self.enable_chat_display_state()
 			self.chat_display.insert('end',('\nThem: ' + data))
 			self.disable_chat_display_state()
@@ -103,7 +106,8 @@ class BlueToothClient(tk.Frame):
 		finally:
 			self.root.after(100, self.check_queue)
 
-	def host_server(self, port, backlog, connection=bt.RFCOMM):
+	def host_server(self, port, backlog,child_window,*, connection=bt.RFCOMM):
+		child_window.destroy()
 		server = bt.BluetoothSocket(connection)
 		server.bind(("", port))
 		server.listen(backlog)
@@ -118,26 +122,28 @@ class BlueToothClient(tk.Frame):
 		self.chat_display.insert('end', ('Connected with: {0}'.format(client_info)))
 		self.disable_chat_display_state()
 
-		return client_sock
+		print(client_sock)
+		self.sock = client_sock
 
 	def create_host_server_window(self):
-		scan_window = tk.Toplevel()
-		scan_window.title('Create Host Server')
-		scan_window.lift(aboveThis=self.root)
+		host_server_window = tk.Toplevel()
+		host_server_window.title('Create Host Server')
+		host_server_window.lift(aboveThis=self.root)
 
-		port = tk.Entry(scan_window, width=20)
+		port = tk.Entry(host_server_window, width=20)
 		port.pack(ipady=3)
 		port.insert(0,'Port')
 		port.focus_set()
 
-		backlog = tk.Entry(scan_window, width=20)
+		backlog = tk.Entry(host_server_window, width=20)
 		backlog.pack(ipady=3)
 		backlog.insert(0,'Backlog')
 
-		button = tk.Button(scan_window, text='Create', width=20,
+		button = tk.Button(host_server_window, text='Create', width=20,
 			command= lambda: self.host_server(
 				port=int(port.get()),
-				backlog=int(backlog.get())))
+				backlog=int(backlog.get()),
+				child_window=host_server_window))
 		button.pack()
 
 	def create_connect_to_window(self):
@@ -167,7 +173,9 @@ class ThreadedClient():
 		self.master = master
 		self.queue = queue.Queue()
 
-		self.gui = BlueToothClient(master, self.queue)
+		self.running = True
+
+		self.gui = BlueToothClient(master, self.queue, self.end_command)
 
 		self.await_messages = threading.Thread(target=self.await_messages_thread)
 		self.await_messages.start()
@@ -175,22 +183,23 @@ class ThreadedClient():
 
 	def periodic_call(self):
 		self.gui.check_queue()
+		if not self.running:
+			sys.exit(1)
 		self.master.after(100, self.periodic_call)
 
 	def start_await_messages_thread(self):
 		self.await_messages.start()
 
 	def await_messages_thread(self):
-		while True:
+		while self.running:
 			try:
 				self.queue.put(self.gui.sock.recv(1024))
 			except AttributeError:
 				time.sleep(2)
 				pass
 
-def receive_message(q, sock):
-	while True:
-		q.put(sock.recv(1025))
+	def end_command(self):
+		self.running = False
 
 if __name__ == '__main__':
 	root = tk.Tk()
