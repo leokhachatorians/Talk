@@ -39,7 +39,6 @@ class BlueToothClient(tk.Frame):
 		frame.pack()
 
 		self.sock = None
-		self.client_sock = None
 		self.client_info = None
 
 		# Chat Receive Display
@@ -83,9 +82,21 @@ class BlueToothClient(tk.Frame):
 
 	def connect_to(self, address, port, child_window, *, connection=bt.RFCOMM):
 		child_window.destroy()
-		sock = bt.BluetoothSocket(connection)
-		sock.connect((address,port))
-		self.sock = sock
+
+		self.enable_chat_display_state()
+		self.chat_display.insert('end', ('Trying to connect to: {0}\n'.format(address)))
+		self.chat_display.insert('end', ('Port: {0}\n'.format(port)))
+
+		try:
+			sock = bt.BluetoothSocket(connection)
+			sock.connect((address,port))
+			self.chat_display.insert('end',('Connection Succesful\n'))
+			self.sock = sock
+		except bt.btcommon.BluetoothError:
+			self.chat_display.insert('end', ('Connection Failed.\n'))
+			self.sock = None
+		finally:
+			self.disable_chat_display_state()
 
 	def send_message(self, event=None):
 		if self.check_if_not_empty_message():
@@ -106,24 +117,24 @@ class BlueToothClient(tk.Frame):
 		finally:
 			self.root.after(100, self.check_queue)
 
-	def host_server(self, port, backlog,child_window,*, connection=bt.RFCOMM):
+	def host_server(self, port, backlog, child_window, *, connection=bt.RFCOMM):
 		child_window.destroy()
+
+		self.enable_chat_display_state()
+		self.chat_display.insert('end', ('Waiting for connection on port: {0}...\n'.format(port)))
+		self.disable_chat_display_state()
+
 		server = bt.BluetoothSocket(connection)
 		server.bind(("", port))
 		server.listen(backlog)
-
-		self.enable_chat_display_state()
-		self.chat_display.insert('end', ('Waiting for connection on port: {0}...'.format(port)))
-		self.disable_chat_display_state()
 
 		client_sock, client_info = server.accept()
 
 		self.enable_chat_display_state()
 		self.chat_display.insert('end', ('Connected with: {0}'.format(client_info)))
 		self.disable_chat_display_state()
-
-		print(client_sock)
 		self.sock = client_sock
+		self.client_info = client_info
 
 	def create_host_server_window(self):
 		host_server_window = tk.Toplevel()
@@ -177,14 +188,23 @@ class ThreadedClient():
 
 		self.gui = BlueToothClient(master, self.queue, self.end_command)
 
-		self.await_messages = threading.Thread(target=self.await_messages_thread)
+		self.await_messages = multiprocessing.Process(target=self.await_messages_thread)
 		self.await_messages.start()
 		self.periodic_call()
 
 	def periodic_call(self):
 		self.gui.check_queue()
 		if not self.running:
-			sys.exit(1)
+			self.gui.sock.close()
+			try:
+				print('So the program isn\'t supposed to be running anymore')
+				self.await_messages.join()
+				print(self.await_messages.isAlive())
+			except AttributeError as e:
+				print(e)
+				pass
+			finally:
+				sys.exit(1)
 		self.master.after(100, self.periodic_call)
 
 	def start_await_messages_thread(self):
@@ -197,6 +217,10 @@ class ThreadedClient():
 			except AttributeError:
 				time.sleep(2)
 				pass
+		else:
+			self.gui.sock.close()
+			self.await_messages.join()
+			self.await_messages.exit()
 
 	def end_command(self):
 		self.running = False
