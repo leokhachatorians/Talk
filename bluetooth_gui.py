@@ -5,18 +5,20 @@ import threading
 import queue
 import time
 import sys
+import select
 
-class BlueToothClient(tk.Frame):
+class BlueToothClient():
 	def __init__(self, root, queue, end_command):
 		self.root = root
 		self.queue = queue
+		self.end_command = end_command
 
 		# Menu Bar
 		self.menubar = tk.Menu(root)
 
 		# Add File Tab
 		self.file_menu = tk.Menu(self.menubar, tearoff=0)
-		self.file_menu.add_command(label='Exit',command=end_command)
+		self.file_menu.add_command(label='Exit',command=self.end_command)
 		self.menubar.add_cascade(label='File',menu=self.file_menu)
 
 		# Add BlueTooth Tab
@@ -35,11 +37,9 @@ class BlueToothClient(tk.Frame):
 		# Key Binds
 		self.root.bind('<Return>', self.send_message)
 
-		frame = tk.Frame(root)
-		frame.pack()
-
 		self.sock = None
 		self.client_info = None
+		self.server = None
 
 		# Chat Receive Display
 		self.chat_display = tk.Text(root, width=50)
@@ -54,8 +54,6 @@ class BlueToothClient(tk.Frame):
 		# Send Button
 		self.button = tk.Button(root, text="Enter", width=50,command=self.send_message)
 		self.button.pack()
-
-		self.root.after(100,self.check_queue)
 
 	def delete_child_window(self, window):
 		window.destroy()
@@ -96,6 +94,7 @@ class BlueToothClient(tk.Frame):
 			self.chat_display.insert('end', ('Connection Failed.\n'))
 			self.sock = None
 		finally:
+			sock = None
 			self.disable_chat_display_state()
 
 	def send_message(self, event=None):
@@ -107,15 +106,14 @@ class BlueToothClient(tk.Frame):
 			self.clear_chat_send_text()
 
 	def check_queue(self):
-		try:
-			data = self.queue.get(0).decode('utf-8')
-			self.enable_chat_display_state()
-			self.chat_display.insert('end',('\nThem: ' + data))
-			self.disable_chat_display_state()
-		except queue.Empty:
-			pass
-		finally:
-			self.root.after(100, self.check_queue)
+		while self.queue.qsize():
+			try:
+				data = self.queue.get(0).decode('utf-8')
+				self.enable_chat_display_state()
+				self.chat_display.insert('end',('\nThem: ' + data))
+				self.disable_chat_display_state()
+			except queue.Empty:
+				pass
 
 	def host_server(self, port, backlog, child_window, *, connection=bt.RFCOMM):
 		child_window.destroy()
@@ -135,6 +133,8 @@ class BlueToothClient(tk.Frame):
 		self.disable_chat_display_state()
 		self.sock = client_sock
 		self.client_info = client_info
+		self.server = server
+
 
 	def create_host_server_window(self):
 		host_server_window = tk.Toplevel()
@@ -184,48 +184,50 @@ class ThreadedClient():
 		self.master = master
 		self.queue = queue.Queue()
 
+		self.thread_stop = threading.Event()
 		self.running = True
 
 		self.gui = BlueToothClient(master, self.queue, self.end_command)
 
-		self.await_messages = multiprocessing.Process(target=self.await_messages_thread)
-		self.await_messages.start()
+		self.start_threads()
 		self.periodic_call()
+
+	def start_threads(self):
+		self.thread_stop.clear()
+		self.await_messages = threading.Thread(target=self.await_messages_thread,
+			daemon=True)
+		self.await_messages.start()
+
+	def stop_threads(self):
+		try:
+			sys.exit(1)
+		except Exception as e:
+			print(e)
 
 	def periodic_call(self):
 		self.gui.check_queue()
 		if not self.running:
-			self.gui.sock.close()
 			try:
-				print('So the program isn\'t supposed to be running anymore')
-				self.await_messages.join()
-				print(self.await_messages.isAlive())
+				self.stop_threads()
 			except AttributeError as e:
-				print(e)
 				pass
 			finally:
 				sys.exit(1)
-		self.master.after(100, self.periodic_call)
-
-	def start_await_messages_thread(self):
-		self.await_messages.start()
+		else:
+			self.master.after(100, self.periodic_call)
 
 	def await_messages_thread(self):
 		while self.running:
 			try:
 				self.queue.put(self.gui.sock.recv(1024))
-			except AttributeError:
-				time.sleep(2)
-				pass
-		else:
-			self.gui.sock.close()
-			self.await_messages.join()
-			self.await_messages.exit()
+			except AttributeError as e:
+				print(e)
+				time.sleep(4)
 
 	def end_command(self):
 		self.running = False
 
 if __name__ == '__main__':
-	root = tk.Tk()
-	client = ThreadedClient(root)
-	root.mainloop()
+	master = tk.Tk()
+	client = ThreadedClient(master)
+	master.mainloop()

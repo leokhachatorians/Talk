@@ -1,12 +1,12 @@
-import bluetooth as bluetooth
+import bluetooth as bt
 import multiprocessing
 
 def receive_messages(sock):
 	try:
 		while True:
 			print('Received Messages: {0}'.format(sock.recv(1024)))
-		except bt.btcommon.BluetoothError as e:
-			raise
+	except bt.btcommon.BluetoothError as e:
+		raise
 
 port = 1
 backlog = 1
