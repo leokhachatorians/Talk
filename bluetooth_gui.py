@@ -31,14 +31,12 @@ class BlueToothClient():
 			command=self.create_host_server_window)
 		self.menubar.add_cascade(label='BlueTooth',menu=self.bt_menu)
 
-
 		self.root.config(menu=self.menubar)
 
 		# Key Binds
 		self.root.bind('<Return>', self.send_message)
 
 		self.sock = None
-		self.client_info = None
 		self.server = None
 
 		# Chat Receive Display
@@ -80,7 +78,6 @@ class BlueToothClient():
 
 	def connect_to(self, address, port, child_window, *, connection=bt.RFCOMM):
 		child_window.destroy()
-
 		self.enable_chat_display_state()
 		self.chat_display.insert('end', ('Trying to connect to: {0}\n'.format(address)))
 		self.chat_display.insert('end', ('Port: {0}\n'.format(port)))
@@ -94,7 +91,6 @@ class BlueToothClient():
 			self.chat_display.insert('end', ('Connection Failed.\n'))
 			self.sock = None
 		finally:
-			sock = None
 			self.disable_chat_display_state()
 
 	def send_message(self, event=None):
@@ -132,9 +128,7 @@ class BlueToothClient():
 		self.chat_display.insert('end', ('Connected with: {0}'.format(client_info)))
 		self.disable_chat_display_state()
 		self.sock = client_sock
-		self.client_info = client_info
 		self.server = server
-
 
 	def create_host_server_window(self):
 		host_server_window = tk.Toplevel()
@@ -178,7 +172,6 @@ class BlueToothClient():
 				child_window=connect_to_window))
 		button.pack()
 
-
 class ThreadedClient():
 	def __init__(self, master):
 		self.master = master
@@ -192,7 +185,7 @@ class ThreadedClient():
 		self.start_threads()
 		self.periodic_call()
 
-	def start_threads(self):
+	def start_threads(self):s
 		self.thread_stop.clear()
 		self.await_messages = threading.Thread(target=self.await_messages_thread,
 			daemon=True)
