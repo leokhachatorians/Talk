@@ -8,14 +8,15 @@ import sys
 import select
 
 class BlueToothClient():
-	def __init__(self, root, queue, end_command, start_message_awaiting):
+	def __init__(self, root, message_queue, end_command, start_message_awaiting):
 		self.root = root
-		self.queue = queue
+		self.message_queue = message_queue
 		self.end_command = end_command
 		self.start_message_awaiting = start_message_awaiting
 
 		# Menu Bar
 		self.menubar = tk.Menu(root)
+		self.root.config(menu=self.menubar)
 
 		# Add File Tab
 		self.file_menu = tk.Menu(self.menubar, tearoff=0)
@@ -24,7 +25,8 @@ class BlueToothClient():
 
 		# Add BlueTooth Tab
 		self.bt_menu = tk.Menu(self.menubar, tearoff=0)
-		self.bt_menu.add_command(label='Scan')
+		self.bt_menu.add_command(label='Scan',
+			command=self.discover_nearby_devices)
 		self.bt_menu.add_separator()
 		self.bt_menu.add_command(label='Connect To',
 			command=self.create_connect_to_window)
@@ -32,10 +34,16 @@ class BlueToothClient():
 			command=self.create_host_server_window)
 		self.menubar.add_cascade(label='BlueTooth',menu=self.bt_menu)
 
-		self.root.config(menu=self.menubar)
+		# Right click popup menu
+		self.right_click_menu = tk.Menu(root, tearoff=0)
+		self.right_click_menu.add_command(label='Copy')
+		self.right_click_menu.add_command(label='Paste')
 
 		# Key Binds
 		self.root.bind('<Return>', self.send_message)
+
+		# Right Click Bind
+		self.root.bind('<Button 3>', self.right_click_menu_functionality)
 
 		self.sock = None
 		self.server = None
@@ -44,6 +52,7 @@ class BlueToothClient():
 		self.chat_display = tk.Text(root, width=50)
 		self.chat_display.configure(state='disabled',font='helvetica 14')
 		self.chat_display.pack(ipady=3)
+		self.chat_display.bind("<1>", lambda event: self.chat_display.focus_set())
 
 		# Chat Send Display
 		self.chat_send = tk.Entry(root, width=50)
@@ -72,6 +81,10 @@ class BlueToothClient():
 	def clear_chat_send_text(self):
 		self.chat_send.delete(0, 'end')
 
+	def right_click_menu_functionality(self, event):
+		self.right_click_menu.post(event.x_root,
+			event.y_root)
+
 	def check_if_not_empty_message(self):
 		if not self.chat_send.get():
 			return False
@@ -80,50 +93,63 @@ class BlueToothClient():
 	def display_message(self, message, data=None):
 		self.enable_chat_display_state()
 		if data:
-			self.chat_display.insert('end', message.format(data))
+			self.chat_display.insert('end', message.format(data) + '\n')
 		else:
-			self.chat_display.insert('end', message)
+			self.chat_display.insert('end', message + '\n')
 		self.disable_chat_display_state()
 
-	def connect_to(self, address, port, child_window, connection=bt.RFCOMM):
+	def discover_nearby_devices(self):
+		self.display_message('Searching for nearby devices...')
+		self.chat_display.update_idletasks()
+		devices = bt.discover_devices()
+		if devices:
+			self.display_message('Found the following devices: ')
+			for device in devices:
+				self.display_message('{0}', device)
+		else:
+			self.display_message('Unable to find any devices')
+		print(devices)
+
+	def connect_to_server(self, address, port, child_window, connection=bt.RFCOMM):
 		child_window.destroy()
-		self.display_message('Trying to connect to: {} \n', address)
-		self.display_message('Port: {} \n', port)
+		self.display_message('Trying to connect to: {}', address)
+		self.display_message('Port: {}', port)
 
 		try:
 			sock = bt.BluetoothSocket(connection)
 			sock.connect((address,port))
-			self.display_message('Connection Succesful \n')
+			self.display_message('Connection Succesful')
 			self.sock = sock
 			self.enable_send_button()
 			self.start_message_awaiting()
 		except bt.btcommon.BluetoothError:
-			self.display_message('Connection Failed \n')
+			self.display_message('Connection Failed')
 			self.sock = None
 
 	def send_message(self, event=None):
 		if self.sock:
 			try:
 				if self.check_if_not_empty_message():
-					self.display_message('You: {} \n', self.chat_send.get())
+					self.display_message('You: {}', self.chat_send.get())
 					self.sock.send(self.chat_send.get())
 			except bt.btcommon.BluetoothError as e:
-				self.display_message('The connection was lost \n')
+				self.display_message('The connection was lost ')
 				self.disable_send_button()
 			finally:
 				self.clear_chat_send_text()
 
-	def check_queue(self):
-		while self.queue.qsize():
+	def check_message_queue(self):
+		while self.message_queue.qsize():
 			try:
-				data = self.queue.get(0).decode('utf-8')
-				self.display_message('Them: {} \n',data)
-			except queue.Empty:
+				data = self.message_queue.get(0).decode('utf-8')
+				self.display_message('Them: {}',data)
+			except message_queue.Empty:
 				pass
 
 	def host_server(self, port, backlog, child_window, connection=bt.RFCOMM):
-		self.display_message('Waiting for connection on port: {}\n', port)
 		child_window.destroy()
+		self.display_message('Waiting for connection on port: {}', port)
+		self.chat_display.update_idletasks()
 
 		server = bt.BluetoothSocket(connection)
 		server.bind(("", port))
@@ -131,7 +157,7 @@ class BlueToothClient():
 
 		client_sock, client_info = server.accept()
 
-		self.display_message('Connected with: {}\n', client_info)
+		self.display_message('Connected with: {}', client_info)
 		self.sock = client_sock
 		self.server = server
 		self.enable_send_button()
@@ -173,7 +199,7 @@ class BlueToothClient():
 		port.insert(0,'Port')
 
 		button = tk.Button(connect_to_window, text='Connect', width=20,
-			command= lambda: self.connect_to(
+			command= lambda: self.connect_to_server(
 				address=address.get(),
 				port=int(port.get()),
 				child_window=connect_to_window))
@@ -182,12 +208,12 @@ class BlueToothClient():
 class ThreadedClient():
 	def __init__(self, master):
 		self.master = master
-		self.queue = queue.Queue()
+		self.message_queue = queue.Queue()
 
 		self.thread_stop = threading.Event()
 		self.running = True
 
-		self.gui = BlueToothClient(master, self.queue, self.end_command, self.start_message_awaiting)
+		self.gui = BlueToothClient(master, self.message_queue, self.end_command, self.start_message_awaiting)
 		self.periodic_call()
 
 	def start_message_awaiting(self):
@@ -203,7 +229,7 @@ class ThreadedClient():
 			print(e)
 
 	def periodic_call(self):
-		self.gui.check_queue()
+		self.gui.check_message_queue()
 		if not self.running:
 			self.stop_threads()
 		else:
@@ -212,7 +238,7 @@ class ThreadedClient():
 	def await_messages_thread(self):
 		while self.running:
 			try:
-				self.queue.put(self.gui.sock.recv(1024))
+				self.message_queue.put(self.gui.sock.recv(1024))
 			except AttributeError:
 				pass
 
