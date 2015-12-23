@@ -5,8 +5,8 @@ pbChat is a lightweight BlueTooth chat application
 
 ## Things Left To Do
 * ~~Create ability to host a server~~
-* Implement discovering/inquiring
-* Better notifications on internal processes
+* ~~Implement discovering/inquiring~~
+* ~~Better notifications on internal processes~~
 * Better chat
 * Actually add documentation
 * Anything else I can think of
@@ -21,5 +21,5 @@ pbChat is a lightweight BlueTooth chat application
 * commence chatting
 
 ## Known Issues
-* Thread lockup when attempting to exit, sometimes.
+* ~~Thread lockup when attempting to exit, sometimes.~~ hehe daemon threads
 * GUI Lockup when connecting/hosting/etc
