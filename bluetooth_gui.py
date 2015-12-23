@@ -34,16 +34,11 @@ class BlueToothClient():
 			command=self.create_host_server_window)
 		self.menubar.add_cascade(label='BlueTooth',menu=self.bt_menu)
 
-		# Right click popup menu
-		self.right_click_menu = tk.Menu(root, tearoff=0)
-		self.right_click_menu.add_command(label='Copy')
-		self.right_click_menu.add_command(label='Paste')
+		# Right Click Menu
+		self.make_right_click_menu(self.root)
 
 		# Key Binds
 		self.root.bind('<Return>', self.send_message)
-
-		# Right Click Bind
-		self.root.bind('<Button 3>', self.right_click_menu_functionality)
 
 		self.sock = None
 		self.server = None
@@ -81,9 +76,35 @@ class BlueToothClient():
 	def clear_chat_send_text(self):
 		self.chat_send.delete(0, 'end')
 
-	def right_click_menu_functionality(self, event):
-		self.right_click_menu.post(event.x_root,
+	def right_click_menu_functionality(self, event, menu):
+		menu.post(event.x_root,
 			event.y_root)
+
+	def make_right_click_menu(self, window):
+		# Right click popup menu
+		right_click_menu = tk.Menu(window, tearoff=0)
+		right_click_menu.add_command(label='Copy',
+			command=lambda: window.focus_get().event_generate('<<Copy>>'))
+		right_click_menu.add_command(label='Paste',
+			command=lambda: window.focus_get().event_generate('<<Paste>>'))
+
+		# Bind it
+		window.bind('<Button 3>',
+			lambda event, menu=right_click_menu: self.right_click_menu_functionality
+			(
+				event,menu
+			))
+
+	def copy_selected_text(self):
+		text_to_copy = self.root.selection_get()
+		self.root.clipboard_clear()
+		self.root.clipboard_append(text_to_copy)
+
+	def paste_selected_text(self, event):
+		text_to_paste = self.root.clipboard.get()
+		print(event.widget)
+		print(text_to_paste)
+
 
 	def check_if_not_empty_message(self):
 		if not self.chat_send.get():
@@ -168,6 +189,8 @@ class BlueToothClient():
 		host_server_window.title('Create Host Server')
 		host_server_window.lift(aboveThis=self.root)
 
+		self.make_right_click_menu(host_server_window)
+
 		port = tk.Entry(host_server_window, width=20)
 		port.pack(ipady=3)
 		port.insert(0,'Port')
@@ -188,6 +211,8 @@ class BlueToothClient():
 		connect_to_window = tk.Toplevel()
 		connect_to_window.title('Connect')
 		connect_to_window.lift(aboveThis=self.root)
+
+		self.make_right_click_menu(connect_to_window)
 
 		address = tk.Entry(connect_to_window, width=20)
 		address.pack(ipady=3)
