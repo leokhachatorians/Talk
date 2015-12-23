@@ -90,10 +90,7 @@ class BlueToothClient():
 
 		# Bind it
 		window.bind('<Button 3>',
-			lambda event, menu=right_click_menu: self.right_click_menu_functionality
-			(
-				event,menu
-			))
+			lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))
 
 	def copy_selected_text(self):
 		text_to_copy = self.root.selection_get()
