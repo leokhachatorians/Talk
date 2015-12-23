@@ -185,7 +185,7 @@ class ThreadedClient():
 		self.start_threads()
 		self.periodic_call()
 
-	def start_threads(self):s
+	def start_threads(self):
 		self.thread_stop.clear()
 		self.await_messages = threading.Thread(target=self.await_messages_thread,
 			daemon=True)
