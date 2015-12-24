@@ -82,17 +82,7 @@ class BlueToothClient():
 	def select_all_text(self, event):
 		event.widget.selection_range("0","end")
 
-	def paste_over_selection(self, event):
-		text_to_paste = self.root.clipboard_get()
-		try:
-			start = event.widget.focus_get().index('sel.first')
-			end = event.widget.focus_get().index('sel.last')
-			event.widget.focus_get().delete(start, end)
-			event.widget.insert(start, text_to_paste)
-		except tk.TclError:
-			event.widget.insert(tk.INSERT, text_to_paste)
-
-	def right_click_paste(self):
+	def paste_over_selection(self, event=None):
 		text_to_paste = self.root.clipboard_get()
 		try:
 			start = self.root.focus_get().index('sel.first')
@@ -112,7 +102,7 @@ class BlueToothClient():
 			command=lambda: window.focus_get().event_generate('<<Cut>>'))
 		right_click_menu.add_command(label='Paste',
 			accelerator='Ctrl+V',
-			command=self.right_click_paste)
+			command=self.paste_over_selection)
 		right_click_menu.add_command(label='Delete',
 			command=lambda: window.focus_get().event_generate('<<Clear>>'))
 
