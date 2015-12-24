@@ -39,6 +39,8 @@ class BlueToothClient():
 
 		# Key Binds
 		self.root.bind('<Return>', self.send_message)
+		self.root.bind('<Control-v>', 
+			lambda event: self.right_click_paste(event=event))
 
 		self.sock = None
 		self.server = None
@@ -50,7 +52,8 @@ class BlueToothClient():
 		self.chat_display.bind("<1>", lambda event: self.chat_display.focus_set())
 
 		# Chat Send Display
-		self.chat_send = tk.Entry(root, width=50)
+		self.chat_send = tk.Entry(root, width=50,
+			exportselection=True)
 		self.chat_send.pack(ipady=3)
 		self.chat_send.focus_set()
 
@@ -80,27 +83,34 @@ class BlueToothClient():
 		menu.post(event.x_root,
 			event.y_root)
 
+	def right_click_paste(self, event=None):
+		text_to_paste = self.root.clipboard_get()
+		start = self.root.focus_get().index('sel.first')
+		end = self.root.focus_get().index('sel.last')
+		self.root.focus_get().delete(start, end)
+		self.root.focus_get().insert('insert', text_to_paste)
+
 	def make_right_click_menu(self, window):
 		# Right click popup menu
 		right_click_menu = tk.Menu(window, tearoff=0)
 		right_click_menu.add_command(label='Copy',
+			accelerator='Ctrl+C',
 			command=lambda: window.focus_get().event_generate('<<Copy>>'))
+		right_click_menu.add_command(label='Cut',
+			command=lambda: window.focus_get().event_generate('<<Cut>>'))
+
 		right_click_menu.add_command(label='Paste',
-			command=lambda: window.focus_get().event_generate('<<Paste>>'))
+			accelerator='Ctrl+V',
+			command=self.right_click_paste)
+	
+		right_click_menu.add_command(label='Delete',
+			command=lambda: window.focus_get().event_generate('<<Clear>>'))
 
 		# Bind it
 		window.bind('<Button 3>',
 			lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))
-
-	def copy_selected_text(self):
-		text_to_copy = self.root.selection_get()
-		self.root.clipboard_clear()
-		self.root.clipboard_append(text_to_copy)
-
-	def paste_selected_text(self, event):
-		text_to_paste = self.root.clipboard.get()
-		print(event.widget)
-		print(text_to_paste)
+		window.bind('<Control-v>', 
+			lambda event: self.right_click_paste(event=event))
 
 
 	def check_if_not_empty_message(self):
@@ -188,12 +198,14 @@ class BlueToothClient():
 
 		self.make_right_click_menu(host_server_window)
 
-		port = tk.Entry(host_server_window, width=20)
+		port = tk.Entry(host_server_window, width=20,
+			exportselection=True)
 		port.pack(ipady=3)
 		port.insert(0,'Port')
 		port.focus_set()
 
-		backlog = tk.Entry(host_server_window, width=20)
+		backlog = tk.Entry(host_server_window, width=20,
+			exportselection=True)
 		backlog.pack(ipady=3)
 		backlog.insert(0,'Backlog')
 
@@ -211,12 +223,14 @@ class BlueToothClient():
 
 		self.make_right_click_menu(connect_to_window)
 
-		address = tk.Entry(connect_to_window, width=20)
+		address = tk.Entry(connect_to_window, width=20,
+			exportselection=True)
 		address.pack(ipady=3)
 		address.insert(0,'Address')
 		address.focus_set()
 
-		port = tk.Entry(connect_to_window, width=20)
+		port = tk.Entry(connect_to_window, width=20,
+			exportselection=True)
 		port.pack(ipady=3)
 		port.insert(0,'Port')
 
