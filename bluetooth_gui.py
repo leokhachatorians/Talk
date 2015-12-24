@@ -1,11 +1,8 @@
 import tkinter as tk
 import bluetooth as bt
-import multiprocessing
 import threading
 import queue
-import time
 import sys
-import select
 
 class BlueToothClient():
 	def __init__(self, root, message_queue, end_command, start_message_awaiting):
@@ -34,14 +31,12 @@ class BlueToothClient():
 			command=self.create_host_server_window)
 		self.menubar.add_cascade(label='BlueTooth',menu=self.bt_menu)
 
-		# Right Click Menu
-		self.make_right_click_menu(self.root)
-
 		# Key Binds
 		self.root.bind('<Return>', self.send_message)
-		self.root.bind('<Control-v>', 
-			lambda event: self.right_click_paste(event=event))
+		self.root.bind_class("Entry","<Control-v>", self.paste_over_selection)
+		self.root.bind_class("Entry","<Control-a>", self.select_all_text)
 
+		# Sockets
 		self.sock = None
 		self.server = None
 
@@ -52,14 +47,15 @@ class BlueToothClient():
 		self.chat_display.bind("<1>", lambda event: self.chat_display.focus_set())
 
 		# Chat Send Display
-		self.chat_send = tk.Entry(root, width=50,
-			exportselection=True)
+		self.chat_send = tk.Entry(root, width=50)
 		self.chat_send.pack(ipady=3)
 		self.chat_send.focus_set()
 
 		# Send Button
 		self.send_button = tk.Button(root, text="Enter", width=50, command=self.send_message, state="disabled")
 		self.send_button.pack()
+
+		self.make_right_click_menu(self.root)
 
 	def delete_child_window(self, window):
 		window.destroy()
@@ -83,12 +79,28 @@ class BlueToothClient():
 		menu.post(event.x_root,
 			event.y_root)
 
-	def right_click_paste(self, event=None):
+	def select_all_text(self, event):
+		event.widget.selection_range("0","end")
+
+	def paste_over_selection(self, event):
 		text_to_paste = self.root.clipboard_get()
-		start = self.root.focus_get().index('sel.first')
-		end = self.root.focus_get().index('sel.last')
-		self.root.focus_get().delete(start, end)
-		self.root.focus_get().insert('insert', text_to_paste)
+		try:
+			start = event.widget.focus_get().index('sel.first')
+			end = event.widget.focus_get().index('sel.last')
+			event.widget.focus_get().delete(start, end)
+			event.widget.insert(start, text_to_paste)
+		except tk.TclError:
+			event.widget.insert(tk.INSERT, text_to_paste)
+
+	def right_click_paste(self):
+		text_to_paste = self.root.clipboard_get()
+		try:
+			start = self.root.focus_get().index('sel.first')
+			end = self.root.focus_get().index('sel.last')
+			self.root.focus_get().delete(start, end)
+			self.root.focus_get().insert(tk.INSERT, text_to_paste)
+		except tk.TclError as e:
+			self.root.focus_get().insert(tk.INSERT, text_to_paste)
 
 	def make_right_click_menu(self, window):
 		# Right click popup menu
@@ -98,20 +110,15 @@ class BlueToothClient():
 			command=lambda: window.focus_get().event_generate('<<Copy>>'))
 		right_click_menu.add_command(label='Cut',
 			command=lambda: window.focus_get().event_generate('<<Cut>>'))
-
 		right_click_menu.add_command(label='Paste',
 			accelerator='Ctrl+V',
 			command=self.right_click_paste)
-	
 		right_click_menu.add_command(label='Delete',
 			command=lambda: window.focus_get().event_generate('<<Clear>>'))
 
 		# Bind it
 		window.bind('<Button 3>',
-			lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))
-		window.bind('<Control-v>', 
-			lambda event: self.right_click_paste(event=event))
-
+			lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))		
 
 	def check_if_not_empty_message(self):
 		if not self.chat_send.get():
@@ -136,7 +143,6 @@ class BlueToothClient():
 				self.display_message('{0}', device)
 		else:
 			self.display_message('Unable to find any devices')
-		print(devices)
 
 	def connect_to_server(self, address, port, child_window, connection=bt.RFCOMM):
 		child_window.destroy()
@@ -198,14 +204,12 @@ class BlueToothClient():
 
 		self.make_right_click_menu(host_server_window)
 
-		port = tk.Entry(host_server_window, width=20,
-			exportselection=True)
+		port = tk.Entry(host_server_window, width=20)
 		port.pack(ipady=3)
 		port.insert(0,'Port')
 		port.focus_set()
 
-		backlog = tk.Entry(host_server_window, width=20,
-			exportselection=True)
+		backlog = tk.Entry(host_server_window, width=20)
 		backlog.pack(ipady=3)
 		backlog.insert(0,'Backlog')
 
@@ -223,14 +227,12 @@ class BlueToothClient():
 
 		self.make_right_click_menu(connect_to_window)
 
-		address = tk.Entry(connect_to_window, width=20,
-			exportselection=True)
+		address = tk.Entry(connect_to_window, width=20)
 		address.pack(ipady=3)
 		address.insert(0,'Address')
 		address.focus_set()
 
-		port = tk.Entry(connect_to_window, width=20,
-			exportselection=True)
+		port = tk.Entry(connect_to_window, width=20)
 		port.pack(ipady=3)
 		port.insert(0,'Port')
 
