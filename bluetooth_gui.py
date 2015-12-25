@@ -3,6 +3,7 @@ import bluetooth as bt
 import threading
 import queue
 import sys
+import time
 
 class BlueToothClient():
 	def __init__(self, root, message_queue, end_command, start_message_awaiting):
@@ -29,6 +30,8 @@ class BlueToothClient():
 			command=self.create_connect_to_window)
 		self.bt_menu.add_command(label='Host Server',
 			command=self.create_host_server_window)
+		self.bt_menu.add_command(label='Close Connection',
+			command=self.close_connection)
 		self.menubar.add_cascade(label='BlueTooth',menu=self.bt_menu)
 
 		# Key Binds
@@ -55,6 +58,7 @@ class BlueToothClient():
 		self.send_button = tk.Button(root, text="Enter", width=50, command=self.send_message, state="disabled")
 		self.send_button.pack()
 
+		# Rightclick Menu
 		self.make_right_click_menu(self.root)
 
 	def delete_child_window(self, window):
@@ -65,6 +69,9 @@ class BlueToothClient():
 
 	def enable_chat_display_state(self):
 		self.chat_display.configure(state='normal')
+
+	def update_chat_display(self):
+		self.chat_display.update_idletasks()
 
 	def enable_send_button(self):
 		self.send_button.config(state="normal")
@@ -125,7 +132,7 @@ class BlueToothClient():
 
 	def discover_nearby_devices(self):
 		self.display_message('Searching for nearby devices...')
-		self.chat_display.update_idletasks()
+		self.update_chat_display()
 		devices = bt.discover_devices()
 		if devices:
 			self.display_message('Found the following devices: ')
@@ -138,6 +145,7 @@ class BlueToothClient():
 		child_window.destroy()
 		self.display_message('Trying to connect to: {}', address)
 		self.display_message('Port: {}', port)
+		self.update_chat_display()
 
 		try:
 			sock = bt.BluetoothSocket(connection)
@@ -170,22 +178,32 @@ class BlueToothClient():
 			except message_queue.Empty:
 				pass
 
-	def host_server(self, port, backlog, child_window, connection=bt.RFCOMM):
+	def close_connection(self):
+		self.sock = None
+		self.server = None
+		self.display_message('Closed connection')
+
+	def host_server(self, port, backlog, child_window, time_limit, connection=bt.RFCOMM):
 		child_window.destroy()
 		self.display_message('Waiting for connection on port: {}', port)
-		self.chat_display.update_idletasks()
+		self.update_chat_display()
 
 		server = bt.BluetoothSocket(connection)
-		server.bind(("", port))
-		server.listen(backlog)
+		server.settimeout(time_limit)
 
-		client_sock, client_info = server.accept()
+		try:
+			server.bind(("", port))
+			server.listen(backlog)
 
-		self.display_message('Connected with: {}', client_info)
-		self.sock = client_sock
-		self.server = server
-		self.enable_send_button()
-		self.start_message_awaiting()
+			client_sock, client_info = server.accept()
+
+			self.display_message('Connected with: {}', client_info)
+			self.sock = client_sock
+			self.server = server
+			self.enable_send_button()
+			self.start_message_awaiting()
+		except bt.btcommon.BluetoothError:
+			self.display_message('No connections before cutoff time of {0} seconds', time_limit)
 
 	def create_host_server_window(self):
 		host_server_window = tk.Toplevel()
@@ -203,10 +221,15 @@ class BlueToothClient():
 		backlog.pack(ipady=3)
 		backlog.insert(0,'Backlog')
 
+		time_limit = tk.Entry(host_server_window, width=20)
+		time_limit.pack(ipady=3)
+		time_limit.insert('0','Time Limit')
+
 		button = tk.Button(host_server_window, text='Create', width=20,
 			command= lambda: self.host_server(
 				port=int(port.get()),
 				backlog=int(backlog.get()),
+				time_limit=int(time_limit.get()),
 				child_window=host_server_window))
 		button.pack()
 
