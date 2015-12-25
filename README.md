@@ -18,8 +18,8 @@ pbChat is a lightweight BlueTooth chat application built entirely out of Python3
 * pybluez
 
 ## How To Run
-* first create a bluetooth server by running 'python basic_server.py'
-* then run 'python bluetooth_gui.py' and connect to it with via the servers address and port number
+* run 'python bluetooth_gui.py' on two seperate computers
+* one computer creates a host server and the other connects to it via its BlueTooth address and port
 * commence chatting
 
 ## Known Issues
