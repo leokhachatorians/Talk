@@ -7,18 +7,19 @@ pbChat is a lightweight BlueTooth chat application built entirely out of Python3
 * ~~Create ability to host a server~~
 * ~~Implement discovering/inquiring~~
 * ~~Better notifications on internal processes~~
+* Breakdown and modularize various GUI widgets/windows/etc
 * Better chat (images etc)
 * File transfer
 * Actually add documentation
 * Anything else I can think of
 
 ## What You Need
-* python3 (python2, might work but ain't mah problem)
+* python3
 * pybluez
 
 ## How To Run
-* first create a bluetooth server by running 'python basic_server.py'
-* then run 'python bluetooth_gui.py' and connect to it with via the servers address and port number
+* run 'python bluetooth_gui.py' on two seperate computers
+* one computer creates a host server and the other connects to it via its BlueTooth address and port
 * commence chatting
 
 ## Known Issues
