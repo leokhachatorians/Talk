@@ -1,4 +1,5 @@
 import tkinter as tk
+import bluetooth as bt
 from .modals.connect_modal import ConnectToServerWindow
 from .modals.host_server_modal import HostServerWindow
 
