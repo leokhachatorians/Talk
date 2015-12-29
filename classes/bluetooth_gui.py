@@ -1,7 +1,9 @@
 import tkinter as tk
+from tkinter import filedialog
 import bluetooth as bt
 from .modals.connect_modal import ConnectToServerWindow
 from .modals.host_server_modal import HostServerWindow
+import PIL as pil
 
 class BlueToothClient():
     def __init__(self, root, message_queue, end_command, start_message_awaiting):
@@ -14,12 +16,11 @@ class BlueToothClient():
         self.menubar = tk.Menu(root)
         self.root.config(menu=self.menubar)
 
-        # Add File Tab
+        # File Tab
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
         self.file_menu.add_command(label='Exit',command=self.end_command)
-        self.menubar.add_cascade(label='File',menu=self.file_menu)
 
-        # Add BlueTooth Tab
+        # BlueTooth Tab
         self.bt_menu = tk.Menu(self.menubar, tearoff=0)
         self.bt_menu.add_command(label='Scan',
             command=self.discover_nearby_devices)
@@ -30,7 +31,23 @@ class BlueToothClient():
             command=self.create_host_server_window)
         self.bt_menu.add_command(label='Close Connection',
             command=self.close_connection)
+
+        # Chat Tab
+        self.chat_menu = tk.Menu(self.menubar, tearoff=0)
+        self.chat_menu.add_command(label='Send Image',
+            command=self.open_file_dialog)
+        self.chat_menu.add_command(label='Clear Chat')
+
+        # Settings Tab
+        self.settings_menu = tk.Menu(self.menubar, tearoff=0)
+        self.settings_menu.add_command(label='Font')
+        self.settings_menu.add_command(label='Misc')
+
+        # Add Tabs to Menu
+        self.menubar.add_cascade(label='File',menu=self.file_menu)
         self.menubar.add_cascade(label='BlueTooth',menu=self.bt_menu)
+        self.menubar.add_cascade(label='Chat', menu=self.chat_menu)
+        self.menubar.add_cascade(label='Settings', menu=self.settings_menu)
 
         # Key Binds
         self.root.bind('<Return>', self.send_message)
@@ -42,19 +59,29 @@ class BlueToothClient():
         self.server = None
 
         # Chat Receive Display
-        self.chat_display = tk.Text(root, width=50)
+        self.chat_display = tk.Text(root)
         self.chat_display.configure(state='disabled',font='helvetica 14')
         self.chat_display.pack(ipady=3)
+        self.chat_display.grid(row=0, 
+            column=0, 
+            rowspan=10,
+            columnspan=10)
         self.chat_display.bind("<1>", lambda event: self.chat_display.focus_set())
 
         # Chat Send Display
-        self.chat_send = tk.Entry(root, width=50)
-        self.chat_send.pack(ipady=3)
+        self.chat_send = tk.Entry(root)
+        self.chat_send.pack(ipady=10)
+        self.chat_send.grid(row=11,
+            column=0,
+            columnspan=9,
+            sticky=tk.W+tk.E+tk.N+tk.S)
         self.chat_send.focus_set()
 
         # Send Button
-        self.send_button = tk.Button(root, text="Enter", width=50, command=self.send_message, state="disabled")
-        self.send_button.pack()
+        self.send_button = tk.Button(root, text="Enter", command=self.send_message, state="disabled")
+        self.send_button.grid(row=11,
+            column=9,
+            sticky=tk.W+tk.E+tk.N+tk.S)
 
         # Rightclick Menu
         self.make_right_click_menu(self.root)
@@ -85,7 +112,7 @@ class BlueToothClient():
         self.chat_send.delete(0, 'end')
 
     def right_click_menu_functionality(self, event, menu):
-        menu.post(event.x_root,
+        menu.tk_popup(event.x_root,
             event.y_root)
 
     def select_all_text(self, event):
@@ -123,6 +150,18 @@ class BlueToothClient():
         if not self.chat_send.get():
             return False
         return True
+
+    def open_file_dialog(self):
+        img = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
+            ('JPEG', '*.jpg'),
+            ('PNG','*.png'),
+            ('BMP','*.bmp')))
+        photo=tk.PhotoImage(file=img)
+        self.enable_chat_display_state()
+        l = tk.Label(image=photo)
+        l.image = photo
+        self.chat_display.image_create('end',image=photo)
+        self.disable_chat_display_state()
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()

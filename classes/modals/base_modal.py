@@ -43,37 +43,12 @@ class ModalWindow(tk.Toplevel):
 		cancel_button = tk.Button(box, text="Cancel", width=10,
 			command=self.cancel)
 		cancel_button.pack(side=tk.LEFT, padx=5, pady=5)
-		self.bind("<Return>", self.ok)
 		self.bind("<Escape>", self.cancel)
 
 		box.pack()
-
-	def ok(self, event=None):
-
-		if not self.validate():
-			self.initial_focus.focus_set() # put focus back
-			return
-
-		self.withdraw()
-		self.update_idletasks()
-
-		self.apply()
-
-		self.cancel()
 
 	def cancel(self, event=None):
 		# put focus back to the parent window
 		self.parent.focus_set()
 		self.destroy()
 		return 'a'
-
-	#
-	# command hooks
-
-	def validate(self):
-
-		return 1 # override
-
-	def apply(self):
-
-		pass # override

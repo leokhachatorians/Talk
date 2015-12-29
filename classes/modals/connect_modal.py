@@ -26,9 +26,7 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 		cancel_button = tk.Button(box, text="Cancel", width=10,
 			command=self.cancel)
 		cancel_button.pack(side=tk.LEFT, padx=5, pady=5)
-		self.bind("<Return>", self.ok)
-		self.bind("<Escape>", self.cancel)
-
+		self.bind("<Return>", self.connect)
 		box.pack()
 
 	def connect(self, connection=bt.RFCOMM):
