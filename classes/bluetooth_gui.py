@@ -3,7 +3,8 @@ from tkinter import filedialog
 import bluetooth as bt
 from .modals.connect_modal import ConnectToServerWindow
 from .modals.host_server_modal import HostServerWindow
-import PIL as pil
+import base64
+import codecs
 
 class BlueToothClient():
     def __init__(self, root, message_queue, end_command, start_message_awaiting):
@@ -157,11 +158,12 @@ class BlueToothClient():
             ('PNG','*.png'),
             ('BMP','*.bmp')))
         photo=tk.PhotoImage(file=img)
-        self.enable_chat_display_state()
         l = tk.Label(image=photo)
         l.image = photo
-        self.chat_display.image_create('end',image=photo)
-        self.disable_chat_display_state()
+        self.display_image(photo)
+
+        data = self.image_to_b64_data(img)
+        self.b64_data_to_image(data)
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()
@@ -171,6 +173,22 @@ class BlueToothClient():
             self.chat_display.insert('end', message + '\n')
         self.update_chat_display()
         self.disable_chat_display_state()
+
+    def display_image(self, image):
+        self.enable_chat_display_state()
+        self.display_message('\n')
+        self.chat_display.image_create('end',image=image)
+        self.disable_chat_display_state()
+
+    def image_to_b64_data(self, photo):
+        with open(photo, 'rb') as img:
+            data = base64.b64encode(img.read())
+        print(data[0:10])
+        return data
+
+    def b64_data_to_image(self, data):
+        with open('temp.gif', 'wb') as f:
+            f.write(codecs.decode(data, 'base64_codec'))
 
     def discover_nearby_devices(self):
         self.display_message('Searching for nearby devices...')
@@ -187,6 +205,7 @@ class BlueToothClient():
             try:
                 if self.check_if_not_empty_message():
                     self.display_message('You: {}', self.chat_send.get())
+                    print(self.chat_send.get()[0:10])
                     self.sock.send(self.chat_send.get())
             except bt.btcommon.BluetoothError as e:
                 self.display_message('The connection was lost ')
