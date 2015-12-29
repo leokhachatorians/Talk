@@ -163,7 +163,8 @@ class BlueToothClient():
         self.display_image(photo)
 
         data = self.image_to_b64_data(img)
-        self.b64_data_to_image(data)
+        self.send_image(data)
+        #self.b64_data_to_image(data)
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()
@@ -205,13 +206,19 @@ class BlueToothClient():
             try:
                 if self.check_if_not_empty_message():
                     self.display_message('You: {}', self.chat_send.get())
-                    print(self.chat_send.get()[0:10])
                     self.sock.send(self.chat_send.get())
             except bt.btcommon.BluetoothError as e:
                 self.display_message('The connection was lost ')
                 self.disable_send_button()
             finally:
                 self.clear_chat_send_text()
+
+    def send_image(self, b64_data, event=None):
+        if self.sock:
+            try:
+                self.sock.send(b64_data)
+            except bt.btcommon.BluetoothError as e:
+                print(e)
 
     def check_message_queue(self):
         while self.message_queue.qsize():
