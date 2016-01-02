@@ -14,7 +14,7 @@ class HostServerWindow(base_modal.ModalWindow):
 		self.time_out = tk.Entry(master)
 
 		self.port.grid(row=0, column=1)
-		self.backlog.grid(row=1, column=1)
+		self.backlog.grid(row=1, column=1) 	
 		self.time_out.grid(row=2, column=1)
 		return self.port # initial focus
 
@@ -31,7 +31,7 @@ class HostServerWindow(base_modal.ModalWindow):
 		self.bind("<Return>", self.host_server)
 		box.pack()
 
-	def host_server(self, connection=bt.RFCOMM):
+	def host_server(self, event=None):
 		try:
 			port = int(self.port.get())
 			backlog = int(self.backlog.get())
@@ -39,7 +39,7 @@ class HostServerWindow(base_modal.ModalWindow):
 		except ValueError:
 			messagebox.showerror("Error","Fields can only contain numbers")
 		else:
-			server = bt.BluetoothSocket(connection)
+			server = bt.BluetoothSocket(bt.RFCOMM)
 			server.settimeout(time_out)
 			try:
 				server.bind(("",port))

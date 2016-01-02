@@ -29,7 +29,7 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 		self.bind("<Return>", self.connect)
 		box.pack()
 
-	def connect(self, connection=bt.RFCOMM):
+	def connect(self, event=None):
 		try:
 			port = int(self.port.get())
 			address = self.address.get()
@@ -37,7 +37,7 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 			messagebox.showerror("Error","Port must be an integer")
 		else:
 			try:
-				sock = bt.BluetoothSocket(connection)
+				sock = bt.BluetoothSocket(bt.RFCOMM)
 				sock.connect((address, port))
 				self.sock = sock
 			except bt.btcommon.BluetoothError:
