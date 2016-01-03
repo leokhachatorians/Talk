@@ -40,6 +40,8 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 				sock = bt.BluetoothSocket(bt.RFCOMM)
 				sock.connect((address, port))
 				self.sock = sock
+				self.address = address
+				self.port = port
 			except bt.btcommon.BluetoothError:
 				self.sock = None
 			finally:

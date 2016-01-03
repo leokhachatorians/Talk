@@ -124,11 +124,6 @@ class BlueToothClient():
     def select_all_text(self, event):
         event.widget.selection_range("0","end")
 
-    def send_message_size(self, the_message):
-        message_size = str(len(the_message))
-        #size_in_binary = struct.pack('I', message_size)
-        self.sock.sendall(message_size)
-
     def paste_over_selection(self, event=None):
         text_to_paste = self.root.clipboard_get()
         try:
@@ -197,8 +192,8 @@ class BlueToothClient():
         return data
 
     def b64_data_to_image(self, data):
-        with open('temp.gif', 'wb') as f:
-            f.write(codecs.decode(data, 'base64_codec'))
+        with open('temp.gif', 'wb') as f:       
+            f.write(codecs.decode(data, 'base64_codec'))       
 
     def discover_nearby_devices(self):
         self.display_message('Searching for nearby devices...')
@@ -235,10 +230,8 @@ class BlueToothClient():
         while self.message_queue.qsize():
             data = self.message_queue.get()
             try:
-                self.enable_chat_display_state()
-                self.chat_display.insert('end', 'Them:\n')
-                self.disable_chat_display_state()
                 self.b64_data_to_image(data)
+                self.display_message('Them:')
                 self.display_image('temp.gif')
                 self.update_chat_display()
             except Exception:
@@ -265,6 +258,7 @@ class BlueToothClient():
                 self.display_message('Connected with: {0}',client_info)
 
                 self.enable_send_button()
+                self.chat_send.focus_set()
                 self.start_message_awaiting()
             else:
                 self.display_message(host_server.error_message)
@@ -276,8 +270,10 @@ class BlueToothClient():
             connection = ConnectToServerWindow(self.root, title='Connect')
             if connection.sock:
                 self.sock = connection.sock
-                self.display_message('Connection Succesful')
+                address, port = connection.address, connection.port
+                self.display_message('Connected Succesfully to {0} on port {1}'.format(address, port))
                 self.enable_send_button()
+                self.chat_send.focus_set()
                 self.start_message_awaiting()
             else:
                 self.display_message('Connection Failed')

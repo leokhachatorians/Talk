@@ -37,20 +37,23 @@ class ThreadedClient():
         else:
             self.master.after(100, self.periodic_call)
 
+    def get_complete_message(self):
+        more_data = True
+        message_buffer = b''
+        while more_data:
+            data = self.gui.sock.recv(8192)
+            if '\n'.encode('ascii') in data:
+                more_data = False
+                message_buffer += data
+            else:
+                message_buffer += data
+        return message_buffer
+
     def await_messages_thread(self):
         while self.running:
-            more_data = True
-            buff = b''
-            while more_data:
-                data = self.gui.sock.recv(8192)
-                if '\n'.encode('ascii') in data:
-                    more_data = False
-                    buff += data
-                else:
-                    buff += data
+            message = self.get_complete_message()
             try:
-                #print(buff)
-                self.message_queue.put(buff)
+                self.message_queue.put(message)
             except AttributeError:
                 pass
 
