@@ -170,8 +170,8 @@ class BlueToothClient():
             ('BMP','*.bmp')))
         data = self.image_to_b64_data(path_to_image)
         self.send_image(data)
+        self.display_message('You:')
         self.display_image(path_to_image)
-        #self.b64_data_to_image(data)
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()
@@ -188,7 +188,6 @@ class BlueToothClient():
         l.image = image
 
         self.enable_chat_display_state()
-        self.display_message('Them: ')
         self.chat_display.image_create('end',image=image)
         self.display_message('\n')
         self.disable_chat_display_state()
@@ -196,7 +195,6 @@ class BlueToothClient():
     def image_to_b64_data(self, photo):
         with open(photo, 'rb') as img:
             data = base64.b64encode(img.read())
-        print(data[0:10])
         return data
 
     def b64_data_to_image(self, data):
@@ -238,8 +236,12 @@ class BlueToothClient():
         while self.message_queue.qsize():
             data = self.message_queue.get()
             try:
+                self.enable_chat_display_state()
+                self.chat_display.insert('end', 'Them:\n')
+                self.disable_chat_display_state()
                 self.b64_data_to_image(data)
                 self.display_image('temp.gif')
+                self.update_chat_display()
             except Exception:
                 self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
             except queue.Empty:
