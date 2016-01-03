@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 import tkinter.scrolledtext as tkScrollText
+from tkinter import messagebox
 import bluetooth as bt
 from .modals.connect_modal import ConnectToServerWindow
 from .modals.host_server_modal import HostServerWindow
@@ -40,8 +41,9 @@ class BlueToothClient():
         # Chat Tab
         self.chat_menu = tk.Menu(self.menubar, tearoff=0)
         self.chat_menu.add_command(label='Send Image',
-            command=self.open_file_dialog)
-        self.chat_menu.add_command(label='Clear Chat')
+            command=self.send_image_workflow)
+        self.chat_menu.add_command(label='Clear Chat',
+            command=self.clear_chat_display)
 
         # Settings Tab
         self.settings_menu = tk.Menu(self.menubar, tearoff=0)
@@ -117,6 +119,11 @@ class BlueToothClient():
     def clear_chat_send_text(self):
         self.chat_send.delete(0, 'end')
 
+    def clear_chat_display(self):
+        self.enable_chat_display_state()
+        self.chat_display.delete('1.0', 'end')
+        self.disable_chat_display_state()
+
     def right_click_menu_functionality(self, event, menu):
         menu.tk_popup(event.x_root,
             event.y_root)
@@ -157,15 +164,20 @@ class BlueToothClient():
             return False
         return True
 
-    def open_file_dialog(self):
+    def send_image_workflow(self):
         path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
             ('JPEG', '*.jpg'),
             ('PNG','*.png'),
             ('BMP','*.bmp')))
         data = self.image_to_b64_data(path_to_image)
-        self.send_image(data)
-        self.display_message('You:')
-        self.display_image(path_to_image)
+
+        try:
+            self.b64_data_to_image(data)
+            self.send_image(data)
+            self.display_message('You:')
+            self.display_image(path_to_image)
+        except tk.TclError:
+            messagebox.showerror("Error","Invalid Image")
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()
@@ -193,7 +205,14 @@ class BlueToothClient():
 
     def b64_data_to_image(self, data):
         with open('temp.gif', 'wb') as f:       
-            f.write(codecs.decode(data, 'base64_codec'))       
+            f.write(codecs.decode(data, 'base64_codec'))
+        self.check_if_valid_image()
+
+    def check_if_valid_image(self):
+        try:
+            image = tk.PhotoImage(file='temp.gif')
+        except tk.TclError:
+            raise
 
     def discover_nearby_devices(self):
         self.display_message('Searching for nearby devices...')
@@ -210,7 +229,7 @@ class BlueToothClient():
             try:
                 if self.check_if_not_empty_message():
                     self.display_message('You: {}', self.chat_send.get())
-                    self.sock.sendall(self.chat_send.get() + '\n')
+                    self.sock.sendall('T' + self.chat_send.get() + '\n')
             except bt.btcommon.BluetoothError as e:
                 self.display_message('The connection was lost ')
                 self.sock = None
@@ -222,20 +241,23 @@ class BlueToothClient():
     def send_image(self, b64_data, event=None):
         if self.sock:
             try:
-                self.sock.send(b64_data + '\n'.encode('ascii'))
+                self.sock.send('I'.encode('ascii') + b64_data + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError as e:
                 print(e)
 
     def check_message_queue(self):
         while self.message_queue.qsize():
-            data = self.message_queue.get()
             try:
-                self.b64_data_to_image(data)
-                self.display_message('Them:')
-                self.display_image('temp.gif')
-                self.update_chat_display()
-            except Exception:
-                self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
+                data = self.message_queue.get()
+                what_type = int(data[0])
+                data = data[1:]
+                if what_type == 84:
+                    self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
+                else:
+                    self.b64_data_to_image(data)
+                    self.display_message('Them:')
+                    self.display_image('temp.gif')
+                    self.update_chat_display()
             except queue.Empty:
                 pass
 
