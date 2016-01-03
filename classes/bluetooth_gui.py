@@ -64,7 +64,6 @@ class BlueToothClient():
         self.server = None
         self.total_message = []
 
-
         # Chat Receive Display
         self.chat_display = tkScrollText.ScrolledText(root)
         self.chat_display.configure(state='disabled',font='helvetica 14')
