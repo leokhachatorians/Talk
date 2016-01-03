@@ -8,6 +8,7 @@ import base64
 import codecs
 import queue
 import time
+import struct
 
 class BlueToothClient():
     def __init__(self, root, message_queue, end_command, start_message_awaiting):
@@ -61,7 +62,8 @@ class BlueToothClient():
         # Sockets
         self.sock = None
         self.server = None
-        self.incomming_size = None
+        self.total_message = []
+
 
         # Chat Receive Display
         self.chat_display = tkScrollText.ScrolledText(root)
@@ -123,6 +125,11 @@ class BlueToothClient():
     def select_all_text(self, event):
         event.widget.selection_range("0","end")
 
+    def send_message_size(self, the_message):
+        message_size = str(len(the_message))
+        #size_in_binary = struct.pack('I', message_size)
+        self.sock.sendall(message_size)
+
     def paste_over_selection(self, event=None):
         text_to_paste = self.root.clipboard_get()
         try:
@@ -157,12 +164,13 @@ class BlueToothClient():
         return True
 
     def open_file_dialog(self):
-        img = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
+        path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
             ('JPEG', '*.jpg'),
             ('PNG','*.png'),
             ('BMP','*.bmp')))
-        data = self.image_to_b64_data(img)
+        data = self.image_to_b64_data(path_to_image)
         self.send_image(data)
+        self.display_image(path_to_image)
         #self.b64_data_to_image(data)
 
     def display_message(self, message, data=None):
@@ -180,6 +188,7 @@ class BlueToothClient():
         l.image = image
 
         self.enable_chat_display_state()
+        self.display_message('Them: ')
         self.chat_display.image_create('end',image=image)
         self.display_message('\n')
         self.disable_chat_display_state()
@@ -209,10 +218,11 @@ class BlueToothClient():
             try:
                 if self.check_if_not_empty_message():
                     self.display_message('You: {}', self.chat_send.get())
-                    print(len(self.chat_send.get()))
-                    self.sock.send(self.chat_send.get())
+                    self.sock.sendall(self.chat_send.get() + '\n')
             except bt.btcommon.BluetoothError as e:
                 self.display_message('The connection was lost ')
+                self.sock = None
+                self.server = None
                 self.disable_send_button()
             finally:
                 self.clear_chat_send_text()
@@ -220,20 +230,18 @@ class BlueToothClient():
     def send_image(self, b64_data, event=None):
         if self.sock:
             try:
-                self.sock.send(b64_data)
+                self.sock.send(b64_data + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError as e:
                 print(e)
 
     def check_message_queue(self):
         while self.message_queue.qsize():
-            data = self.message_queue.get(0)
-            print(len(data))
+            data = self.message_queue.get()
             try:
                 self.b64_data_to_image(data)
                 self.display_image('temp.gif')
-            except Exception as e:
-                #print(e)
-                self.display_message('Them: {}',data.decode('utf-8'))
+            except Exception:
+                self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
             except queue.Empty:
                 pass
 

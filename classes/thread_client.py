@@ -12,6 +12,8 @@ class ThreadedClient():
 
         self.thread_stop = threading.Event()
         self.running = True
+        self.all_data = []
+        self.got_length = False
 
         self.gui = BlueToothClient(master, self.message_queue, self.end_command, self.start_message_awaiting)
         self.periodic_call()
@@ -35,52 +37,51 @@ class ThreadedClient():
         else:
             self.master.after(100, self.periodic_call)
 
-    def recv_timeout(self, the_socket,timeout=1):
-        #make socket non blocking
-        the_socket.setblocking(0)
-         
-        #total data partwise in an array
-        total_data=[];
-        data='';
-         
-        #beginning time
-        begin=time.time()
-        while 1:
-            #if you got some data, then break after timeout
-            if total_data and time.time()-begin > timeout:
-                break
-             
-            #if you got no data at all, wait a little longer, twice the timeout
-            elif time.time()-begin > timeout*2:
-                break
-             
-            #recv something
-            try:
-                data = the_socket.recv(8192)
-                if data:
-                    total_data.append(data)
-                    #change the beginning time for measurement
-                    begin=time.time()
-               # else:
-                    #sleep for sometime to indicate a gap
-                    #time.sleep(0.1)
-            except:
-                pass
-         
-        #join all parts to make final string
-        try:
-            return total_data[0]
-        except IndexError:
-            return False
+    # def await_messages_thread(self):
+
+        # while True:
+        #     total_data = []
+        #     print('total data')
+        #     print(total_data)
+        #     begin = time.time()
+        #     if total_data and time.time() - begin > 2:
+        #         break
+        #     elif time.time() - begin > 2*2:
+        #         break
+
+        #     try:
+        #         data = self.gui.sock.recv(8192)
+        #         print(data)
+        #         if data:
+        #             total_data.append(data)
+        #             print('got data')
+        #             print(total_data)
+        #             begin = time.time()
+        #         else:
+        #             time.sleep(0.1)
+        #     except:
+        #         pass
+
+        # put_data = ''.join(total_data)
+        # self.message_queue.put(put_data)
+
 
     def await_messages_thread(self):
         while self.running:
-            data = self.gui.sock.recv(1024)
-            if data:
-                try:
-                    # self.message_queue.put(self.gui.sock.recv(1024))
-                    self.message_queue.put(data)
-                except AttributeError:
-                    pass
+            more_data = True
+            buff = b''
+            while more_data:
+                data = self.gui.sock.recv(8192)
+                if '\n'.encode('ascii') in data:
+                    more_data = False
+                    buff += data
+                else:
+                    buff += data
+            try:
+                #print(buff)
+                self.message_queue.put(buff)
+            except AttributeError:
+                pass
+
     def end_command(self):
         self.running = False
