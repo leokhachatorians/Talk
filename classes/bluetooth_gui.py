@@ -131,6 +131,9 @@ class BlueToothClient():
     def select_all_text(self, event):
         event.widget.selection_range("0","end")
 
+    def display_message_box(self, the_type, title, text):
+        getattr(messagebox, the_type)(title, text)
+
     def paste_over_selection(self, event=None):
         text_to_paste = self.root.clipboard_get()
         try:
@@ -170,14 +173,13 @@ class BlueToothClient():
             ('PNG','*.png'),
             ('BMP','*.bmp')))
         data = self.image_to_b64_data(path_to_image)
-
         try:
             self.b64_data_to_image(data)
             self.send_image(data)
             self.display_message('You:')
             self.display_image(path_to_image)
         except tk.TclError:
-            messagebox.showerror("Error","Invalid Image")
+            self.display_message_box('showerror', 'Error', 'Invalid Image')
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()
@@ -185,6 +187,7 @@ class BlueToothClient():
             self.chat_display.insert('end', message.format(data) + '\n')
         else:
             self.chat_display.insert('end', message + '\n')
+        self.chat_display.see('end')
         self.update_chat_display()
         self.disable_chat_display_state()
 
@@ -192,10 +195,10 @@ class BlueToothClient():
         image = tk.PhotoImage(file=path_to_image)
         l = tk.Label(image=image)
         l.image = image
-
         self.enable_chat_display_state()
         self.chat_display.image_create('end',image=image)
         self.display_message('\n')
+        self.chat_display.see('end')
         self.disable_chat_display_state()
 
     def image_to_b64_data(self, photo):
@@ -222,7 +225,7 @@ class BlueToothClient():
             for device in devices:
                 self.display_message('{0}', device)
         else:
-            self.display_message('Unable to find any devices')
+            self.display_message_box('showerror', 'Error', 'Unable to find any devices')
 
     def send_message(self, event=None):
         if self.sock:
@@ -267,7 +270,7 @@ class BlueToothClient():
             self.server = None
             self.display_message('Closed connection')
         else:
-            self.display_message('No connection to close')
+            self.display_message_box('showinfo','No Connection', 'No connection to close')
 
     def create_host_server_window(self):
         try:
@@ -276,14 +279,12 @@ class BlueToothClient():
                 self.sock = host_server.sock
                 self.server = host_server.server
                 client_info = host_server.client_info
-
                 self.display_message('Connected with: {0}',client_info)
-
                 self.enable_send_button()
                 self.chat_send.focus_set()
                 self.start_message_awaiting()
             else:
-                self.display_message(host_server.error_message)
+                self.display_message_box('showerror', 'Error', host_server.error_message)
         except Exception as e:
             pass
 
@@ -298,6 +299,6 @@ class BlueToothClient():
                 self.chat_send.focus_set()
                 self.start_message_awaiting()
             else:
-                self.display_message('Connection Failed')
+                self.display_message_box('showerror', 'Error', 'Connection Failed')
         except Exception as e:
             pass
