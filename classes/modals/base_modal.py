@@ -6,6 +6,7 @@ class ModalWindow(tk.Toplevel):
 		self.transient(parent)
 		self.sock = None
 		self.server = None
+		self.error_message = None
 
 		if title:
 			self.title(title)

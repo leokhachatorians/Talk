@@ -132,14 +132,28 @@ class BlueToothClient():
         getattr(messagebox, the_type)(title, text)
 
     def close_server(self):
+        """
+        Close our server socket and set it to none
+        """
         self.server.close()
         self.server = None
 
     def close_socket(self):
+        """
+        Close our socket and set it to None
+        """
         self.sock.close()
         self.sock = None
 
     def paste_over_selection(self, event=None):
+        """
+        Replicate the function of removing text when we highlight and paste into it.
+
+        Parameters
+        ----------
+        event : tkinter event
+            Used as a binding for when we use Ctrl+v to perform the action
+        """
         try:
             text_to_paste = self.root.clipboard_get()
             start = self.root.focus_get().index('sel.first')
@@ -151,6 +165,15 @@ class BlueToothClient():
             self.root.focus_get().insert(tk.INSERT, text_to_paste)
 
     def make_right_click_menu(self, window):
+        """
+        Create the right click menu for our given window. Also binds our right
+        click button to display the menu.
+
+        Parameters
+        ----------
+        window : tk window object
+            Where our rightclick menu should be displayed and functional
+        """
         right_click_menu = tk.Menu(window, tearoff=0)
         right_click_menu.add_command(label='Copy',
             accelerator='Ctrl+C',
@@ -167,10 +190,30 @@ class BlueToothClient():
             lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))       
 
     def check_if_not_empty_message(self):
+        """
+        Determine whether or not the user is attempting to send
+        a text message with no content. Used before acutally allowing data
+        to be sent.
+
+        Returns
+        -------
+        bool
+            If there is text in the chat_send box, return true.
+        """
         if self.chat_send.get():
             return True
 
     def open_image_selection_dialog(self):
+        """
+        Open a filedialog with a given set of options to get the path of the
+        selected image the user wishes to send.
+
+        Returns
+        -------
+        path_to_image : string:
+            The path to our image, will be an empty string if user does
+            not select anything
+        """
         path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
             ('JPEG', '*.jpg'),
             ('PNG','*.png'),
@@ -178,6 +221,14 @@ class BlueToothClient():
         return path_to_image 
 
     def send_image_workflow(self):
+        """
+        The main workflow needed to check if the image is compatiable with Tkinter,
+        catch any raised exceptions when the user just enters and exits the file dialog,
+        and actually send the image.
+
+        We don't have to worry about if the image actually exists since Tkinter takes care
+        of that for us by default within the filedialog widget.
+        """
         path_to_image = self.open_image_selection_dialog()
         try:
             data = self.image_to_b64_data(path_to_image)
@@ -191,6 +242,17 @@ class BlueToothClient():
             pass
 
     def display_message(self, message, data=None):
+        """
+        Display a message within our chat display.
+
+        Parameters
+        ----------
+        message : string
+            The message to be displayed
+        data : string, optional
+            If there is any additonal information we want to display within
+            our message which we couldn't do otherwise.
+        """
         self.enable_chat_display_state()
         if data:
             self.chat_display.insert('end', message.format(data) + '\n')
@@ -201,6 +263,14 @@ class BlueToothClient():
         self.disable_chat_display_state()
 
     def display_image(self, path_to_image):
+        """
+        Given an image path, display the image within our chat display
+
+        Parameters
+        ----------
+        path_to_image : string
+            The directory path of our image file
+        """
         image = tk.PhotoImage(file=path_to_image)
         l = tk.Label(image=image)
         l.image = image
@@ -210,23 +280,60 @@ class BlueToothClient():
         self.chat_display.see('end')
         self.disable_chat_display_state()
 
-    def image_to_b64_data(self, photo):
-        with open(photo, 'rb') as img:
+    def image_to_b64_data(self, path_to_image):
+        """
+        Given an image path, write the data in a base64 endcoded codec
+        and return the data
+
+        Parameters
+        ----------
+        path_to_image : string
+            The directory path of our image file
+
+        Returns
+        -------
+        data : base64 encoded bytes
+            Our imagefile converted into base64 bytes
+
+        """
+        with open(path_to_image, 'rb') as img:
             data = base64.b64encode(img.read())
         return data
 
     def b64_data_to_image(self, data):
+        """
+        Write the encoded data into a .gif file.
+        Once written, check to see if the file is compatiable
+
+        Parameters
+        ----------
+        data : base64_endcoded data
+            The binary image data
+        """
         with open('temp.gif', 'wb') as f:       
             f.write(codecs.decode(data, 'base64_codec'))
         self.check_if_valid_image()
 
     def check_if_valid_image(self):
+        """
+        Check to see if the image in question is compatiable
+        with tkinter.
+
+        Raises
+        ------
+        TclError
+            If the image is not compatiable
+        """
         try:
             image = tk.PhotoImage(file='temp.gif')
         except tk.TclError:
             raise
 
     def discover_nearby_devices(self):
+        """
+        Scan for any nearby devices and display their address. If nothing was found,
+        display an error message stating as such.
+        """
         self.display_message('Searching for nearby devices...')
         devices = bt.discover_devices()
         if devices:
@@ -237,6 +344,16 @@ class BlueToothClient():
             self.display_message_box('showerror', 'Error', 'Unable to find any devices')
 
     def send_message(self, event=None):
+        """
+        If there is a current socket send a simple text message, if
+        there is any BluetoothError, this means the connection was lost
+        so begin the process of closing the connection on our end.
+
+        Parameters
+        ----------
+        event : tkinter event
+            the event thing when the users uses the <Return> key
+        """
         if self.sock:
             try:
                 if self.check_if_not_empty_message():
@@ -249,6 +366,16 @@ class BlueToothClient():
                 self.clear_chat_send_text()
 
     def send_image(self, b64_data):
+        """
+        Send the specified image with an encoded 'I' appended at the front and
+        a '\n' appended at the rear. Used to show that the data is an image and
+        when the data ends respectively.
+
+        Parameters
+        ----------
+        b64_data : base64_endcoded data
+            The binary image data
+        """
         if self.sock:
             try:
                 self.sock.send('I'.encode('ascii') + b64_data + '\n'.encode('ascii'))
@@ -256,6 +383,17 @@ class BlueToothClient():
                 print(e)
 
     def display_received_data(self, data):
+        """
+        Determine what sort of message we have received by checking the first
+        byte. Depending on what value appended prior the sending of the data,
+        there will be further steps in order to correctly display the message;
+        if it's an image vs a file vs a text vs etc.
+
+        Parameters
+        ----------
+        data : bytes 
+            bytes data which was received from our receiving socket.
+        """
         the_type = int(data[0])
         data = data[1:]
         if the_type == 84:
@@ -266,11 +404,21 @@ class BlueToothClient():
             self.display_image('temp.gif')
 
     def close_connection(self):
+        """
+        Close the current BlueTooth connection.
+
+        If there is a current socket, begin the process of closing off
+        all open connections. Catch errors depending if its a client or a
+        server we are closing the connection for.
+        
+        If not, display a message stating that we do not have anything
+        currently open.
+        """
         if self.sock:
             self.end_bluetooth_connection()
             try:
                 self.close_server()
-            except AttributeError:
+            except AttributeError: # Not a server but a client
                 pass
             finally:
                 self.close_socket()
@@ -280,6 +428,15 @@ class BlueToothClient():
             self.display_message_box('showinfo','No Connection', 'No connection to close')
 
     def create_host_server_window(self):
+        """
+        Create the 'host the server' modal.
+
+        If we succesfully accept an incoming connection, set up the internals
+        and wait for incoming messages.
+
+        If we do not get any connections before our timeout value, display
+        an error message stating as such.
+        """
         host_server = HostServerWindow(self.root, title='Host a Server')
         if host_server.sock:
             self.sock = host_server.sock
@@ -289,12 +446,19 @@ class BlueToothClient():
             self.enable_send_button()
             self.chat_send.focus_set()
             self.start_message_awaiting()
-        elif not host_server.sock:
-            pass
-        else:
+        elif host_server.error_message:
             self.display_message_box('showerror', 'Error', host_server.error_message)
 
     def create_connect_to_window(self):
+        """
+        Create the 'connect to server' modal.
+
+        If we succesfully connect to a server, set up the internals and begin
+        waiting for incoming messages.
+
+        If the user attempts to connect but we do not receive a valid socket before
+        the timeout, or really any BlueTooth related error, display a generic error message.
+        """
         connection = ConnectToServerWindow(self.root, title='Connect')
         if connection.sock:
             self.sock = connection.sock
@@ -303,10 +467,9 @@ class BlueToothClient():
             self.enable_send_button()
             self.chat_send.focus_set()
             self.start_message_awaiting()
-        elif not connection.sock:
-            pass
-        else:
+        elif connection.error_message:
             self.display_message_box('showerror', 'Error', 'Connection Failed')
+
 
     def check_message_queue(self):
         while self.message_queue.qsize():

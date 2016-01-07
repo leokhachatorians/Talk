@@ -51,6 +51,6 @@ class HostServerWindow(base_modal.ModalWindow):
 			except bt.btcommon.BluetoothError:
 				self.sock = None
 				self.server = None
-				self.error_message = 'No connections before cutoff time of {0}'.format(self.time_out.get())
+				self.error_message = 'No connection before cutoff time of {0} seconds'.format(self.time_out.get())
 			finally:
 				self.cancel()
