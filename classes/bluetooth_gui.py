@@ -9,14 +9,17 @@ import base64
 import codecs
 import queue
 import time
+import PyOBEX as pyobex
 import struct
 
 class BlueToothClient():
-    def __init__(self, root, message_queue, end_command, start_message_awaiting):
+    def __init__(self, root, message_queue, end_command, start_message_awaiting,
+        end_bluetooth_connection):
         self.root = root
         self.message_queue = message_queue
         self.end_command = end_command
         self.start_message_awaiting = start_message_awaiting
+        self.end_bluetooth_connection = end_bluetooth_connection
 
         # Menu Bar
         self.menubar = tk.Menu(root)
@@ -134,18 +137,26 @@ class BlueToothClient():
     def display_message_box(self, the_type, title, text):
         getattr(messagebox, the_type)(title, text)
 
+    def close_server(self):
+        self.server.close()
+        self.server = None
+
+    def close_socket(self):
+        self.sock.close()
+        self.sock = None
+
     def paste_over_selection(self, event=None):
-        text_to_paste = self.root.clipboard_get()
         try:
+            text_to_paste = self.root.clipboard_get()
             start = self.root.focus_get().index('sel.first')
             end = self.root.focus_get().index('sel.last')
             self.root.focus_get().delete(start, end)
-            self.root.focus_get().insert(tk.INSERT, text_to_paste)
         except tk.TclError as e:
+            pass
+        finally:
             self.root.focus_get().insert(tk.INSERT, text_to_paste)
 
     def make_right_click_menu(self, window):
-        # Right click popup menu
         right_click_menu = tk.Menu(window, tearoff=0)
         right_click_menu.add_command(label='Copy',
             accelerator='Ctrl+C',
@@ -158,7 +169,6 @@ class BlueToothClient():
         right_click_menu.add_command(label='Delete',
             command=lambda: window.focus_get().event_generate('<<Clear>>'))
 
-        # Bind it
         window.bind('<Button 3>',
             lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))       
 
@@ -234,7 +244,7 @@ class BlueToothClient():
                     self.display_message('You: {}', self.chat_send.get())
                     self.sock.sendall('T' + self.chat_send.get() + '\n')
             except bt.btcommon.BluetoothError as e:
-                self.display_message('The connection was lost ')
+                self.display_message_box('showerror','Error','The connection was lost')
                 self.sock = None
                 self.server = None
                 self.disable_send_button()
@@ -252,23 +262,31 @@ class BlueToothClient():
         while self.message_queue.qsize():
             try:
                 data = self.message_queue.get()
-                what_type = int(data[0])
-                data = data[1:]
-                if what_type == 84:
-                    self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
-                else:
-                    self.b64_data_to_image(data)
-                    self.display_message('Them:')
-                    self.display_image('temp.gif')
-                    self.update_chat_display()
+                self.display_received_data(data)
             except queue.Empty:
                 pass
 
+    def display_received_data(self, data):
+        the_type = int(data[0])
+        data = data[1:]
+        if the_type == 84:
+            self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
+        else:
+            self.b64_data_to_image(data)
+            self.display_message('Them:')
+            self.display_image('temp.gif')
+            self.update_chat_display()
+
     def close_connection(self):
         if self.sock:
-            self.sock = None
-            self.server = None
-            self.display_message('Closed connection')
+            self.end_bluetooth_connection()
+            try:
+                self.close_server()
+                self.close_socket()
+            except AttributeError:
+                self.close_socket()
+            finally:
+                self.display_message('Closed connection')
         else:
             self.display_message_box('showinfo','No Connection', 'No connection to close')
 
@@ -285,7 +303,7 @@ class BlueToothClient():
                 self.start_message_awaiting()
             else:
                 self.display_message_box('showerror', 'Error', host_server.error_message)
-        except Exception as e:
+        except Exception:
             pass
 
     def create_connect_to_window(self):
@@ -300,5 +318,5 @@ class BlueToothClient():
                 self.start_message_awaiting()
             else:
                 self.display_message_box('showerror', 'Error', 'Connection Failed')
-        except Exception as e:
+        except Exception:
             pass

@@ -12,16 +12,19 @@ class ThreadedClient():
 
         self.thread_stop = threading.Event()
         self.running = True
+        self.connection_running = False
         self.all_data = []
         self.got_length = False
 
-        self.gui = BlueToothClient(master, self.message_queue, self.end_command, self.start_message_awaiting)
+        self.gui = BlueToothClient(master, self.message_queue, self.end_gui, self.start_message_awaiting,
+            self.end_bluetooth_connection)
         self.periodic_call()
 
     def start_message_awaiting(self):
         self.thread_stop.clear()
         self.await_messages = threading.Thread(target=self.await_messages_thread,
             daemon=True)
+        self.connection_running = True
         self.await_messages.start()
 
     def stop_threads(self):
@@ -50,12 +53,19 @@ class ThreadedClient():
         return message_buffer
 
     def await_messages_thread(self):
-        while self.running:
+        while self.connection_running:
             message = self.get_complete_message()
+
+            if not self.connection_running:
+                break
+
             try:
                 self.message_queue.put(message)
             except AttributeError:
                 pass
 
-    def end_command(self):
+    def end_gui(self):
         self.running = False
+
+    def end_bluetooth_connection(self):
+        self.connection_running = False

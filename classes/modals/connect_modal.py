@@ -42,7 +42,9 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 				self.sock = sock
 				self.address = address
 				self.port = port
-			except bt.btcommon.BluetoothError:
+			except bt.btcommon.BluetoothError as e:
+				print(e)
+				sock.close()
 				self.sock = None
 			finally:
 				self.cancel()
