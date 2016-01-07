@@ -1,4 +1,5 @@
 import tkinter as tk
+import bluetooth as bt
 import threading
 import queue
 import sys
@@ -41,24 +42,26 @@ class ThreadedClient():
             self.master.after(100, self.periodic_call)
 
     def get_complete_message(self):
-        more_data = True
-        message_buffer = b''
-        while more_data:
-            data = self.gui.sock.recv(8192)
-            if '\n'.encode('ascii') in data:
-                more_data = False
-                message_buffer += data
-            else:
-                message_buffer += data
-        return message_buffer
+        try:
+            more_data = True
+            message_buffer = b''
+            while more_data:
+                data = self.gui.sock.recv(8192)
+
+                if '\n'.encode('ascii') in data:
+                    more_data = False
+                    message_buffer += data
+                else:
+                    message_buffer += data
+            return message_buffer
+        except bt.btcommon.BluetoothError:
+            self.connection_running = False
 
     def await_messages_thread(self):
         while self.connection_running:
             message = self.get_complete_message()
-
             if not self.connection_running:
                 break
-
             try:
                 self.message_queue.put(message)
             except AttributeError:

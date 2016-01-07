@@ -3,7 +3,9 @@ import tkinter as tk
 class ModalWindow(tk.Toplevel):
 	def __init__(self, parent, title=None):
 		tk.Toplevel.__init__(self, parent)
-		#self.transient(parent)
+		self.transient(parent)
+		self.sock = None
+		self.server = None
 
 		if title:
 			self.title(title)
@@ -50,24 +52,5 @@ class ModalWindow(tk.Toplevel):
 		box.pack()
 
 	def cancel(self, event=None):
-		# put focus back to the parent window
-		self.parent.focus_set()
+		#self.parent.focus_set()
 		self.destroy()
-		return 'a'
-
-	def make_right_click_menu(self, window):
-		print('sss')
-		right_click_menu = tk.Menu(window, tearoff=0)
-		right_click_menu.add_command(label='Copy',
-			accelerator='Ctrl+C',
-			command=lambda: window.focus_get().event_generate('<<Copy>>'))
-		right_click_menu.add_command(label='Cut',
-			command=lambda: window.focus_get().event_generate('<<Cut>>'))
-		right_click_menu.add_command(label='Paste',
-			accelerator='Ctrl+V',
-			command=self.paste_over_selection)
-		right_click_menu.add_command(label='Delete',
-			command=lambda: window.focus_get().event_generate('<<Clear>>'))
-
-		window.bind('<Button 3>',
-			lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))       

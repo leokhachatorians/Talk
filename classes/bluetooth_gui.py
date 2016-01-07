@@ -8,9 +8,6 @@ from .modals.host_server_modal import HostServerWindow
 import base64
 import codecs
 import queue
-import time
-import PyOBEX as pyobex
-import struct
 
 class BlueToothClient():
     def __init__(self, root, message_queue, end_command, start_message_awaiting,
@@ -101,9 +98,6 @@ class BlueToothClient():
         self.host_server_window_is_open = False
         self.connect_to_window_is_open = False
 
-    def delete_child_window(self, window):
-        window.destroy()
-
     def disable_chat_display_state(self):
         self.chat_display.configure(state='disabled')
 
@@ -173,23 +167,28 @@ class BlueToothClient():
             lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))       
 
     def check_if_not_empty_message(self):
-        if not self.chat_send.get():
-            return False
-        return True
+        if self.chat_send.get():
+            return True
 
-    def send_image_workflow(self):
+    def open_image_selection_dialog(self):
         path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
             ('JPEG', '*.jpg'),
             ('PNG','*.png'),
             ('BMP','*.bmp')))
-        data = self.image_to_b64_data(path_to_image)
+        return path_to_image 
+
+    def send_image_workflow(self):
+        path_to_image = self.open_image_selection_dialog()
         try:
+            data = self.image_to_b64_data(path_to_image)
             self.b64_data_to_image(data)
             self.send_image(data)
             self.display_message('You:')
             self.display_image(path_to_image)
         except tk.TclError:
             self.display_message_box('showerror', 'Error', 'Invalid Image')
+        except FileNotFoundError:
+            pass
 
     def display_message(self, message, data=None):
         self.enable_chat_display_state()
@@ -245,26 +244,16 @@ class BlueToothClient():
                     self.sock.sendall('T' + self.chat_send.get() + '\n')
             except bt.btcommon.BluetoothError as e:
                 self.display_message_box('showerror','Error','The connection was lost')
-                self.sock = None
-                self.server = None
-                self.disable_send_button()
+                self.close_connection()
             finally:
                 self.clear_chat_send_text()
 
-    def send_image(self, b64_data, event=None):
+    def send_image(self, b64_data):
         if self.sock:
             try:
                 self.sock.send('I'.encode('ascii') + b64_data + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError as e:
                 print(e)
-
-    def check_message_queue(self):
-        while self.message_queue.qsize():
-            try:
-                data = self.message_queue.get()
-                self.display_received_data(data)
-            except queue.Empty:
-                pass
 
     def display_received_data(self, data):
         the_type = int(data[0])
@@ -275,48 +264,54 @@ class BlueToothClient():
             self.b64_data_to_image(data)
             self.display_message('Them:')
             self.display_image('temp.gif')
-            self.update_chat_display()
 
     def close_connection(self):
         if self.sock:
             self.end_bluetooth_connection()
             try:
                 self.close_server()
-                self.close_socket()
             except AttributeError:
-                self.close_socket()
+                pass
             finally:
+                self.close_socket()
                 self.display_message('Closed connection')
+                self.disable_send_button()
         else:
             self.display_message_box('showinfo','No Connection', 'No connection to close')
 
     def create_host_server_window(self):
-        try:
-            host_server = HostServerWindow(self.root, title='Host a Server')
-            if host_server.sock:
-                self.sock = host_server.sock
-                self.server = host_server.server
-                client_info = host_server.client_info
-                self.display_message('Connected with: {0}',client_info)
-                self.enable_send_button()
-                self.chat_send.focus_set()
-                self.start_message_awaiting()
-            else:
-                self.display_message_box('showerror', 'Error', host_server.error_message)
-        except Exception:
+        host_server = HostServerWindow(self.root, title='Host a Server')
+        if host_server.sock:
+            self.sock = host_server.sock
+            self.server = host_server.server
+            client_info = host_server.client_info
+            self.display_message('Connected with: {0}',client_info)
+            self.enable_send_button()
+            self.chat_send.focus_set()
+            self.start_message_awaiting()
+        elif not host_server.sock:
             pass
+        else:
+            self.display_message_box('showerror', 'Error', host_server.error_message)
 
     def create_connect_to_window(self):
-        try:
-            connection = ConnectToServerWindow(self.root, title='Connect')
-            if connection.sock:
-                self.sock = connection.sock
-                address, port = connection.address, connection.port
-                self.display_message('Connected Succesfully to {0} on port {1}'.format(address, port))
-                self.enable_send_button()
-                self.chat_send.focus_set()
-                self.start_message_awaiting()
-            else:
-                self.display_message_box('showerror', 'Error', 'Connection Failed')
-        except Exception:
+        connection = ConnectToServerWindow(self.root, title='Connect')
+        if connection.sock:
+            self.sock = connection.sock
+            address, port = connection.address, connection.port
+            self.display_message('Connected Succesfully to {0} on port {1}'.format(address, port))
+            self.enable_send_button()
+            self.chat_send.focus_set()
+            self.start_message_awaiting()
+        elif not connection.sock:
             pass
+        else:
+            self.display_message_box('showerror', 'Error', 'Connection Failed')
+
+    def check_message_queue(self):
+        while self.message_queue.qsize():
+            try:
+                data = self.message_queue.get()
+                self.display_received_data(data)
+            except queue.Empty:
+                pass
