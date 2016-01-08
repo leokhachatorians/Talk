@@ -5,7 +5,10 @@ from tkinter import messagebox
 
 class ConnectToServerWindow(base_modal.ModalWindow):
 	def body(self, master):
-
+		"""
+		Creates and formats everything pertaining to the modal except for
+		the buttons.
+		"""
 		tk.Label(master, text="Adress:").grid(row=0)
 		tk.Label(master, text="Port:").grid(row=1)
 
@@ -17,6 +20,9 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 		return self.address # initial focus
 
 	def button_box(self):
+		"""
+		Creates the format and style of our buttons
+		"""
 		box = tk.Frame(self)
 
 		connect_button = tk.Button(box, text="Connect", width=10,
@@ -30,6 +36,19 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 		box.pack()
 
 	def connect(self, event=None):
+		"""
+		Attempts to connect to a Bluetooth device. If there is a Bluetooth Error,
+		we set 'self.error_message' to equal the error in question so we can then
+		flag our GUI that there was an issue.
+
+		If we have succesfully connected, we set 'self.sock' to equal to the connected
+		socket, this is then passed into the GUI within the calling function.
+
+		Parameters
+		----------
+		event : tkinter event
+			We just need this to enable keybinding <Return> to function properly.
+		"""
 		try:
 			port = int(self.port.get())
 			address = self.address.get()

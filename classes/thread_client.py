@@ -14,7 +14,6 @@ class ThreadedClient():
         self.thread_stop = threading.Event()
         self.running = True
         self.connection_running = False
-        self.all_data = []
         self.got_length = False
 
         self.gui = BlueToothClient(master, self.message_queue, self.end_gui, self.start_message_awaiting,
@@ -47,7 +46,6 @@ class ThreadedClient():
             message_buffer = b''
             while more_data:
                 data = self.gui.sock.recv(8192)
-
                 if '\n'.encode('ascii') in data:
                     more_data = False
                     message_buffer += data

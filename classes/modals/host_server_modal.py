@@ -5,6 +5,10 @@ from tkinter import messagebox
 
 class HostServerWindow(base_modal.ModalWindow):
 	def body(self, master):
+		"""
+		Creates and formats everything pertaining to the modal except for
+		the buttons.
+		"""
 		tk.Label(master, text="Port:").grid(row=0)
 		tk.Label(master, text="Backlog:").grid(row=1)
 		tk.Label(master, text="Timeout:").grid(row=2)
@@ -19,6 +23,9 @@ class HostServerWindow(base_modal.ModalWindow):
 		return self.port # initial focus
 
 	def button_box(self):
+		"""
+		Creates the format and style of our buttons
+		"""
 		box = tk.Frame(self)
 
 		connect_button = tk.Button(box, text="Host", width=10,
@@ -32,6 +39,15 @@ class HostServerWindow(base_modal.ModalWindow):
 		box.pack()
 
 	def host_server(self, event=None):
+		"""
+		Attempts to host a server within the specified timeframe
+		the user has selected. If there is a error, which should be due to
+		the timeout, we set 'self.error_message' to equal an error message 
+		which is then passed into the GUI.
+
+		If succesfully conencted, set 'self.sock' and 'self.server' to their respective
+		counter-parts. This will also be passed into the GUI within the calling function.
+		"""
 		try:
 			port = int(self.port.get())
 			backlog = int(self.backlog.get())

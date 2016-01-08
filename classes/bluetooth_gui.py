@@ -10,11 +10,30 @@ import codecs
 import queue
 
 class BlueToothClient():
-    def __init__(self, root, message_queue, end_command, start_message_awaiting,
+    def __init__(self, root, message_queue, end_gui, start_message_awaiting,
         end_bluetooth_connection):
+    """
+    This is the GUI class which provides the funtionality of both creating a host server to
+    await for any incomming connecitons, as well as the client which attempts to connect to a host.
+
+    Parameters
+    ----------
+    root : tk root object
+        This is the passed along tk root thing
+    message_queue : a queue.queue
+        Passed in queue which we check periodically for data
+    end_gui : a function
+        When called, will notify the working thread to exit out of the thread
+    start_message_awaiting : a function
+        When called, will notify the working thread that its ok to start
+        the process of accepting any incoming data
+    end_bluetooth_connection : a function
+        When called, notifies the working thread that the Bluetooth Connection
+        will be shut down, and that there is to be no more checking for messages.
+    """
         self.root = root
         self.message_queue = message_queue
-        self.end_command = end_command
+        self.end_gui = end_gui
         self.start_message_awaiting = start_message_awaiting
         self.end_bluetooth_connection = end_bluetooth_connection
 
@@ -24,7 +43,7 @@ class BlueToothClient():
 
         # File Tab
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
-        self.file_menu.add_command(label='Exit',command=self.end_command)
+        self.file_menu.add_command(label='Exit',command=self.end_gui)
 
         # BlueTooth Tab
         self.bt_menu = tk.Menu(self.menubar, tearoff=0)
@@ -64,7 +83,6 @@ class BlueToothClient():
         # Sockets
         self.sock = None
         self.server = None
-        self.total_message = []
 
         # Chat Receive Display
         self.chat_display = tkScrollText.ScrolledText(root)
@@ -99,36 +117,93 @@ class BlueToothClient():
         self.connect_to_window_is_open = False
 
     def disable_chat_display_state(self):
+        """
+        Prevents the chat display widget from being modified.
+        """
         self.chat_display.configure(state='disabled')
 
     def enable_chat_display_state(self):
+        """
+        Enables the chat display widget to be modified.
+        """
         self.chat_display.configure(state='normal')
 
     def update_chat_display(self):
+        """
+        When called will force our chat display widget to refresh any changes
+        which may be waiting to be shown. If we don't call this, then certain
+        things may not be shown in the order or at the time we want them to be
+        shown.
+        """
         self.chat_display.update_idletasks()
 
     def enable_send_button(self):
+        """
+        Enables the send button to be used
+        """
         self.send_button.config(state="normal")
 
     def disable_send_button(self):
+        """
+        Disables the send button from being used
+        """
         self.send_button.config(state="disabled")
 
     def clear_chat_send_text(self):
+        """
+        Clears any text within our chat send widget
+        """
         self.chat_send.delete(0, 'end')
 
     def clear_chat_display(self):
+        """
+        Clears all text and images from our chat display widget.
+        """
         self.enable_chat_display_state()
         self.chat_display.delete('1.0', 'end')
         self.disable_chat_display_state()
 
     def right_click_menu_functionality(self, event, menu):
+        """
+        What actually allows our right click menu to 'pop up'.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The event is what we require in order to capture the actual mousebind.
+            Without it, it won't work
+        menu : tkinter menu object
+            This is the menu we want to have displayed when called
+        """
         menu.tk_popup(event.x_root,
             event.y_root)
 
     def select_all_text(self, event):
+        """
+        Function we use when we bind 'Ctrl+A'; it selects all the text.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The event is what we require in order to capture the actual keybind.
+            Without it, it won't work.
+        """
         event.widget.selection_range("0","end")
 
     def display_message_box(self, the_type, title, text):
+        """
+        Create and display a tkinter messagebox via 'messagebox',
+        a builtin tkinter module.
+
+        Parameters
+        ----------
+        the_type : string
+            The type of messagebox we want to have display
+        title : string
+            The title we want the message box to have
+        text : string
+            The text we want the message box to dispay
+        """
         getattr(messagebox, the_type)(title, text)
 
     def close_server(self):
@@ -208,6 +283,9 @@ class BlueToothClient():
         Open a filedialog with a given set of options to get the path of the
         selected image the user wishes to send.
 
+        Note that there is no catching or preventing of any files which may not
+        exist, the actual widget does that work for us out of the box.
+
         Returns
         -------
         path_to_image : string:
@@ -243,7 +321,7 @@ class BlueToothClient():
 
     def display_message(self, message, data=None):
         """
-        Display a message within our chat display.
+        Display a message within our chat display widget.
 
         Parameters
         ----------
@@ -264,7 +342,7 @@ class BlueToothClient():
 
     def display_image(self, path_to_image):
         """
-        Given an image path, display the image within our chat display
+        Given an image path, display the image within our chat display widget.
 
         Parameters
         ----------
@@ -303,7 +381,7 @@ class BlueToothClient():
     def b64_data_to_image(self, data):
         """
         Write the encoded data into a .gif file.
-        Once written, check to see if the file is compatiable
+        Once written, check to see if the file is compatible
 
         Parameters
         ----------
@@ -316,13 +394,13 @@ class BlueToothClient():
 
     def check_if_valid_image(self):
         """
-        Check to see if the image in question is compatiable
+        Check to see if the image in question is compatible
         with tkinter.
 
         Raises
         ------
         TclError
-            If the image is not compatiable
+            If the image is not compatible
         """
         try:
             image = tk.PhotoImage(file='temp.gif')
@@ -472,6 +550,11 @@ class BlueToothClient():
 
 
     def check_message_queue(self):
+        """
+        When called will check to determine if there is anything within our queue.
+        If there is, we pull out the data and determine how to display it, unless
+        the queue is empty, then it stops.
+        """
         while self.message_queue.qsize():
             try:
                 data = self.message_queue.get()
