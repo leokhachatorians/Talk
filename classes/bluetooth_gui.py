@@ -12,25 +12,25 @@ import queue
 class BlueToothClient():
     def __init__(self, root, message_queue, end_gui, start_message_awaiting,
         end_bluetooth_connection):
-    """
-    This is the GUI class which provides the funtionality of both creating a host server to
-    await for any incomming connecitons, as well as the client which attempts to connect to a host.
+        """
+        This is the GUI class which provides the funtionality of both creating a host server to
+        await for any incomming connecitons, as well as the client which attempts to connect to a host.
 
-    Parameters
-    ----------
-    root : tk root object
-        This is the passed along tk root thing
-    message_queue : a queue.queue
-        Passed in queue which we check periodically for data
-    end_gui : a function
-        When called, will notify the working thread to exit out of the thread
-    start_message_awaiting : a function
-        When called, will notify the working thread that its ok to start
-        the process of accepting any incoming data
-    end_bluetooth_connection : a function
-        When called, notifies the working thread that the Bluetooth Connection
-        will be shut down, and that there is to be no more checking for messages.
-    """
+        Parameters
+        ----------
+        root : tk root object
+            This is the passed along tk root thing
+        message_queue : a queue.queue
+            Passed in queue which we check periodically for data
+        end_gui : a function
+            When called, will notify the working thread to exit out of the thread
+        start_message_awaiting : a function
+            When called, will notify the working thread that its ok to start
+            the process of accepting any incoming data
+        end_bluetooth_connection : a function
+            When called, notifies the working thread that the Bluetooth Connection
+            will be shut down, and that there is to be no more checking for messages.
+        """
         self.root = root
         self.message_queue = message_queue
         self.end_gui = end_gui
@@ -515,17 +515,20 @@ class BlueToothClient():
         If we do not get any connections before our timeout value, display
         an error message stating as such.
         """
-        host_server = HostServerWindow(self.root, title='Host a Server')
-        if host_server.sock:
-            self.sock = host_server.sock
-            self.server = host_server.server
-            client_info = host_server.client_info
-            self.display_message('Connected with: {0}',client_info)
-            self.enable_send_button()
-            self.chat_send.focus_set()
-            self.start_message_awaiting()
-        elif host_server.error_message:
-            self.display_message_box('showerror', 'Error', host_server.error_message)
+        if self.sock:
+            self.display_message_box('showerror','Already Connected','Close your current connection before attempting to host a connection.')
+        else:
+            host_server = HostServerWindow(self.root, title='Host a Server')
+            if host_server.sock:
+                self.sock = host_server.sock
+                self.server = host_server.server
+                client_info = host_server.client_info
+                self.display_message('Connected with: {0}',client_info)
+                self.enable_send_button()
+                self.chat_send.focus_set()
+                self.start_message_awaiting()
+            elif host_server.error_message:
+                self.display_message_box('showerror', 'Error', host_server.error_message)
 
     def create_connect_to_window(self):
         """
@@ -537,17 +540,19 @@ class BlueToothClient():
         If the user attempts to connect but we do not receive a valid socket before
         the timeout, or really any BlueTooth related error, display a generic error message.
         """
-        connection = ConnectToServerWindow(self.root, title='Connect')
-        if connection.sock:
-            self.sock = connection.sock
-            address, port = connection.address, connection.port
-            self.display_message('Connected Succesfully to {0} on port {1}'.format(address, port))
-            self.enable_send_button()
-            self.chat_send.focus_set()
-            self.start_message_awaiting()
-        elif connection.error_message:
-            self.display_message_box('showerror', 'Error', 'Connection Failed')
-
+        if self.sock:
+            self.display_message_box('showerror','Already Connected','Close your current connection before attempting to connect to another server.')
+        else:
+            connection = ConnectToServerWindow(self.root, title='Connect')
+            if connection.sock:
+                self.sock = connection.sock
+                address, port = connection.address, connection.port
+                self.display_message('Connected Succesfully to {0} on port {1}'.format(address, port))
+                self.enable_send_button()
+                self.chat_send.focus_set()
+                self.start_message_awaiting()
+            elif connection.error_message:
+                self.display_message_box('showerror', 'Error', 'Connection Failed')
 
     def check_message_queue(self):
         """
