@@ -1,6 +1,9 @@
 import tkinter as tk
 
 class ModalWindow(tk.Toplevel):
+	"""
+	The basic modal window which all others are inherited from.
+	"""
 	def __init__(self, parent, title=None):
 		tk.Toplevel.__init__(self, parent)
 		self.transient(parent)
@@ -36,9 +39,15 @@ class ModalWindow(tk.Toplevel):
 
 
 	def body(self, master):
+		"""
+		Sole purpose is to be overriden.
+		"""
 		pass
 
 	def button_box(self):
+		"""
+		Main button box format which is inherited by the connect and host modals.
+		"""
 		box = tk.Frame(self)
 
 		ok_button = tk.Button(box, text="Ok", width=10,
@@ -53,5 +62,7 @@ class ModalWindow(tk.Toplevel):
 		box.pack()
 
 	def cancel(self, event=None):
-		#self.parent.focus_set()
+		"""
+		Destroys modal when called
+		"""
 		self.destroy()
