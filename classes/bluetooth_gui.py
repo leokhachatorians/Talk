@@ -61,7 +61,7 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         self.chat_menu.add_command(label='Send Image',
             command=self.send_image_workflow)
         self.chat_menu.add_command(label='Send File',
-            command=self.send_file)
+            command=self.send_file_workflow)
         self.chat_menu.add_command(label='Clear Chat',
             command=self.clear_chat_display)
 
@@ -248,40 +248,6 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
 
         window.bind('<Button 3>',
             lambda event, menu=right_click_menu: self.right_click_menu_functionality(event,menu))       
-
-    def open_image_selection_dialog(self):
-        """
-        Open a filedialog with a given set of options to get the path of the
-        selected image the user wishes to send.
-
-        Note that there is no catching or preventing of any files which may not
-        exist, the actual widget does that work for us out of the box.
-
-        Returns
-        -------
-        path_to_image : string:
-            The path to our image, will be an empty string if user does
-            not select anything
-        """
-        path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
-            ('JPEG', '*.jpg;*.jpeg'),
-            ('PNG','*.png'),
-            ('BMP','*.bmp'),
-            ("All Files","*.*")))
-        return path_to_image 
-
-    def open_file_selection_dialog(self):
-        file_selection = filedialog.askopenfilename(filetypes=(
-                ("Text Files", "*.txt;"),
-                ("PDF Files", "*.pdf"),
-                ("Microsoft Word Files","*.doc;*.docx;*.dot;"),
-                ("Rich Text Format","*.rtf"),
-                ("Python Files","*.py"),
-                ("C Files","*.c"),
-                ("HTML Files","*.htm;*.html"),
-                ("JavaScript Files","*.js"),
-                ("All Files","*.*")))
-        return file_selection
 
     def display_message(self, message, data=None):
         """

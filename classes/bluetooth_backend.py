@@ -69,6 +69,13 @@ class BluetoothBackend():
             except bt.btcommon.BluetoothError as e:
                 print(e)
 
+    def send_file(self, data):
+        if self.sock:
+            try:
+                self.sock.send('F'.encode('ascii') + data + '\n'.encode('ascii'))
+            except bt.btcommon.BluetoothError as e:
+                print(e)
+
     def close_server(self):
         """
         Close our server socket and set it to none

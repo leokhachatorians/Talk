@@ -17,6 +17,40 @@ class GUIBackend():
     housed here. But if it involves preparing the data PRIOR to socket involvement it is acceptable.
     """
 
+    def open_image_selection_dialog(self):
+        """
+        Open a filedialog with a given set of options to get the path of the
+        selected image the user wishes to send.
+
+        Note that there is no catching or preventing of any files which may not
+        exist, the actual widget does that work for us out of the box.
+
+        Returns
+        -------
+        path_to_image : string:
+            The path to our image, will be an empty string if user does
+            not select anything
+        """
+        path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
+            ('JPEG', '*.jpg;*.jpeg'),
+            ('PNG','*.png'),
+            ('BMP','*.bmp'),
+            ("All Files","*.*")))
+        return path_to_image 
+
+    def open_file_selection_dialog(self):
+        file_selection = filedialog.askopenfilename(filetypes=(
+                ("Text Files", "*.txt;"),
+                ("PDF Files", "*.pdf"),
+                ("Microsoft Word Files","*.doc;*.docx;*.dot;"),
+                ("Rich Text Format","*.rtf"),
+                ("Python Files","*.py"),
+                ("C Files","*.c"),
+                ("HTML Files","*.htm;*.html"),
+                ("JavaScript Files","*.js"),
+                ("All Files","*.*")))
+        return file_selection
+
     def send_image_workflow(self):
         """
         The main workflow needed to check if the image is compatiable with Tkinter,
@@ -30,8 +64,8 @@ class GUIBackend():
         display a warning message stating as such.
         """
         path_to_image = self.open_image_selection_dialog()
-        file_type = self.check_file_type(path_to_image)
-        if file_type == 'Image':
+        file_information = self.get_file_information(path_to_image)
+        if file_information[0] == 'Image':
             try:
                 data = self.image_to_b64_data(path_to_image)
                 self.b64_data_to_image(data)
@@ -43,13 +77,30 @@ class GUIBackend():
             except FileNotFoundError:
                 pass
 
-    def check_file_type(self, file_path):
-        file_path_ending = file_path[-3:]
-        image_path_endings = ['jpg','gif','png','bmp','jpeg']
-        if file_path_ending in image_path_endings:
-            return 'Image'
+    def send_file_workflow(self):
+        path_to_file = self.open_file_selection_dialog()
+        file_information = self.get_file_information(path_to_file)
+        file_name = file_information[1]
+        file_type = file_information[2]
+        if file_information[0] == 'File':
+            try:
+                data = self.file_to_binary_data(file_name, file_type)
+
+
+                # with open('poop'+file_type, 'wb') as w:
+                #     w.write(data)
+            except Exception as e:
+                print(e)
+
+    def get_file_information(self, file_path):
+        file_name = file_path.split('/')[-1].split('.')[0]
+        file_ending = '.' + file_path.split('/')[-1].split('.')[1]
+        image_path_endings = ['.jpg','.gif','.png','.bmp','.jpeg']
+
+        if file_ending in image_path_endings:
+            return ['Image', file_name, file_ending]
         else:
-            return 'File'
+            return ['File', file_name, file_ending]
 
     def check_if_not_empty_message(self):
         """
@@ -64,6 +115,11 @@ class GUIBackend():
         """
         if self.chat_send.get():
             return True
+
+    def file_to_binary_data(self, file_name, file_type):
+        with open(file_name+file_type, 'rb') as f:
+            data = f.read()
+        return data
 
     def image_to_b64_data(self, path_to_image):
         """
@@ -113,30 +169,6 @@ class GUIBackend():
             image = tk.PhotoImage(file='temp.gif')
         except tk.TclError:
             raise
-
-    def send_file(self):
-        if self.sock:
-            file_selection = filedialog.askopenfilename(filetypes=(
-                ("Text Files", "*.txt;"),
-                ("PDF Files", "*.pdf"),
-                ("Microsoft Word Files","*.doc;*.docx;*.dot;"),
-                ("Rich Text Format","*.rtf"),
-                ("Python Files","*.py"),
-                ("C Files","*.c"),
-                ("HTML Files","*.htm;*.html"),
-                ("JavaScript Files","*.js"),
-                ("All Files","*.*")))
-        else:
-            file_selection = filedialog.askopenfilename(filetypes=(
-                ("Text Files", "*.txt;"),
-                ("PDF Files", "*.pdf"),
-                ("Microsoft Word Files","*.doc;*.docx;*.dot;"),
-                ("Rich Text Format","*.rtf"),
-                ("Python Files","*.py"),
-                ("C Files","*.c"),
-                ("HTML Files","*.htm;*.html"),
-                ("JavaScript Files","*.js"),
-                ("All Files","*.*")))
         
     def display_received_data(self, data):
         """
@@ -151,6 +183,7 @@ class GUIBackend():
             bytes data which was received from our receiving socket.
         """
         the_type = int(data[0])
+        print(the_type)
         data = data[1:]
         if the_type == 84:
             self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
