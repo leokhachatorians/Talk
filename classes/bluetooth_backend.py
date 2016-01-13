@@ -69,10 +69,11 @@ class BluetoothBackend():
             except bt.btcommon.BluetoothError as e:
                 print(e)
 
-    def send_file(self, data):
+    def send_file(self, data, file_name, file_type):
         if self.sock:
             try:
-                self.sock.send('F'.encode('ascii') + data + '\n'.encode('ascii'))
+                file_information = ('\t' + file_name + '\t' + file_type + '\t').encode('ascii')
+                self.sock.send('F'.encode('ascii') + file_information + data + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError as e:
                 print(e)
 

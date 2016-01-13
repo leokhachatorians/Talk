@@ -85,10 +85,7 @@ class GUIBackend():
         if file_information[0] == 'File':
             try:
                 data = self.file_to_binary_data(file_name, file_type)
-
-
-                # with open('poop'+file_type, 'wb') as w:
-                #     w.write(data)
+                self.send_file(data, file_name, file_type)
             except Exception as e:
                 print(e)
 
@@ -120,6 +117,13 @@ class GUIBackend():
         with open(file_name+file_type, 'rb') as f:
             data = f.read()
         return data
+
+    def binary_data_to_file(self, seperated_data):
+        file_name = seperated_data[0]
+        file_type = seperated_data[1]
+        data = seperated_data[2]
+        with open('test.md', 'wb') as f:
+            f.write(data)
 
     def image_to_b64_data(self, path_to_image):
         """
@@ -185,8 +189,11 @@ class GUIBackend():
         the_type = int(data[0])
         print(the_type)
         data = data[1:]
-        if the_type == 84:
+        if the_type == 84: # regular message
             self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
+        elif the_type == 70: # file message
+            seperated_data = data.split('\t'.encode('ascii'))
+            self.binary_data_to_file(seperated_data)
         else:
             self.b64_data_to_image(data)
             self.display_message('Them:')
