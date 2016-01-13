@@ -4,7 +4,7 @@ import threading
 import queue
 import sys
 import time
-from classes.bluetooth_gui import BlueToothClient
+from classes.bluetooth_gui import BluetoothChatGUI
 
 class ThreadedClient():
     def __init__(self, root):
@@ -25,7 +25,7 @@ class ThreadedClient():
         self.connection_running = False
         self.got_length = False
 
-        self.gui = BlueToothClient(root, self.message_queue, self.end_gui, self.start_message_awaiting,
+        self.gui = BluetoothChatGUI(root, self.message_queue, self.end_gui, self.start_message_awaiting,
             self.end_bluetooth_connection)
         self.periodic_call()
 
@@ -114,3 +114,29 @@ class ThreadedClient():
         our BlueTooth conneciton.
         """
         self.connection_running = False
+
+    def send_image_workflow(self):
+        """
+        The main workflow needed to check if the image is compatiable with Tkinter,
+        catch any raised exceptions when the user just enters and exits the file dialog,
+        and actually send the image.
+
+        We don't have to worry about if the image actually exists since Tkinter takes care
+        of that for us by default within the filedialog widget.
+
+        We also make sure that any non-image files get prevented from being sent and
+        display a warning message stating as such.
+        """
+        path_to_image = self.open_image_selection_dialog()
+        file_type = self.check_file_type(path_to_image)
+        if file_type == 'Image':
+            try:
+                data = self.image_to_b64_data(path_to_image)
+                self.b64_data_to_image(data)
+                self.send_image(data)
+                self.display_message('You:')
+                self.display_image(path_to_image)
+            except tk.TclError:
+                self.display_message_box('showerror', 'Error', 'Invalid Image')
+            except FileNotFoundError:
+                pass
