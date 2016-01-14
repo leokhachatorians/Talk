@@ -122,7 +122,7 @@ class GUIBackend():
         file_name = seperated_data[0]
         file_type = seperated_data[1]
         data = seperated_data[2]
-        with open('test.md', 'wb') as f:
+        with open(file_name+file_type, 'wb') as f:
             f.write(data)
 
     def image_to_b64_data(self, path_to_image):

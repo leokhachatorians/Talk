@@ -8,10 +8,10 @@ pbChat is a lightweight BlueTooth chat application built entirely out of Python3
 * ~~Implement discovering/inquiring~~
 * ~~Better notifications on internal processes~~
 * ~~Breakdown and modularize various GUI widgets/windows/etc~~
-* Smooth shutdown when the other person exits/closes connection
-* Better chat (images etc)
+* ~~Smooth shutdown when the other person exits/closes connection~~
+* Better chat (~~images~~, fonts, etc)
 * File transfer
-* Actually add documentation
+* ~~Actually add documentation~~
 * Anything else I can think of
 
 ## What You Need
