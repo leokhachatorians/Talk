@@ -120,9 +120,9 @@ class GUIBackend():
         return data
 
     def binary_data_to_file(self, seperated_data):
-        file_name = seperated_data[0]
-        file_type = seperated_data[1]
-        data = seperated_data[2]
+        file_name = seperated_data[1]
+        file_type = seperated_data[2]
+        data = seperated_data[3]
         with open(file_name+file_type, 'wb') as f:
             f.write(data)
 
