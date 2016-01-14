@@ -82,9 +82,10 @@ class GUIBackend():
         file_information = self.get_file_information(path_to_file)
         file_name = file_information[1]
         file_type = file_information[2]
+        full_file_path = file_information[3]
         if file_information[0] == 'File':
             try:
-                data = self.file_to_binary_data(file_name, file_type)
+                data = self.file_to_binary_data(full_file_path)
                 self.send_file(data, file_name, file_type)
             except Exception as e:
                 print(e)
@@ -95,9 +96,9 @@ class GUIBackend():
         image_path_endings = ['.jpg','.gif','.png','.bmp','.jpeg']
 
         if file_ending in image_path_endings:
-            return ['Image', file_name, file_ending]
+            return ['Image', file_name, file_ending, file_path]
         else:
-            return ['File', file_name, file_ending]
+            return ['File', file_name, file_ending, file_path]
 
     def check_if_not_empty_message(self):
         """
@@ -113,8 +114,8 @@ class GUIBackend():
         if self.chat_send.get():
             return True
 
-    def file_to_binary_data(self, file_name, file_type):
-        with open(file_name+file_type, 'rb') as f:
+    def file_to_binary_data(self, full_file_path):
+        with open(full_file_path, 'rb') as f:
             data = f.read()
         return data
 
