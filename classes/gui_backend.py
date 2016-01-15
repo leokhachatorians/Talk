@@ -138,6 +138,15 @@ class GUIBackend():
             self.display_message_box('showerror', 'No Connection',
              'You need to have an active Bluetooth connection first.')
 
+    def prepare_to_send_file(self, file_path):
+        if self.sock:
+            file_information = self.prepare_file_information(file_path)
+            file_name = file_information[0]
+            file_type = file_information[1]
+
+            data = self.convert_to_b64_data(file_path)
+            self.send_file(data, file_name, file_type)
+
     def prepare_file_information(self, file_path):
         file_name = file_path.split('/')[-1].split('.')[0]
         file_ending = '.' + file_path.split('/')[-1].split('.')[1]
@@ -212,7 +221,7 @@ class GUIBackend():
             with open(file_name + file_type, 'wb') as the_file:
                 the_file.write(codecs.decode(data, 'base64_codec'))
         
-    def display_received_data(self, data):
+    def manage_received_data(self, data):
         """
         Determine what sort of message we have received by checking the first
         byte. Depending on what value appended prior the sending of the data,
@@ -234,16 +243,18 @@ class GUIBackend():
             self.convert_from_b64_data(seperated_data)
         elif the_type == 63:
             seperated_data = data.split('\t'.encode('ascii'))
+            print(seperated_data)
             result = messagebox.askyesno('Incoming File',
-                'Would you like to accept\n{0} {1} {2}?'.format(
+                'Would you like to accept\n{0} {1}?'.format(
                     seperated_data[1]+seperated_data[2], seperated_data[3]))
             if result:
-                self.send_accepting_file_notification()
+                self.send_accepting_file_notification(seperated_data[4])
             else:
                 self.send_rejecting_file_notification()
         elif the_type == 65:
             seperated_data = data.split('\t'.encode('ascii'))
-            path = seperated_data[1]
+            path = seperated_data[1].decode('utf-8').rstrip('\n\n')
+            self.prepare_to_send_file(path)
             print(path)
         elif the_type == 82:
             self.display_message_box('showerror','Refused','The file was refused.')
@@ -261,6 +272,6 @@ class GUIBackend():
         while self.message_queue.qsize():
             try:
                 data = self.message_queue.get()
-                self.display_received_data(data)
+                self.manage_received_data(data)
             except queue.Empty:
                 pass
