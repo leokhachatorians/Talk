@@ -80,14 +80,14 @@ class BluetoothBackend():
     def send_accepting_file_notification(self, file_path):
         if self.sock:
             try:
-                self.sock.send('A'.encode('ascii') + '\t' + file_path + '\n')
+                self.sock.send(('A' + '\t' + file_path + '\n').encode('ascii'))
             except bt.btcommon.BluetoothError as e:
                 print(e)
 
     def send_rejecting_file_notification(self):
         if self.sock:
             try:
-                self.sock.send('R'.encode('ascii') + '\n')
+                self.sock.send(('R' + '\n').encode('ascii'))
             except bt.btcommon.BluetoothError as e:
                 print(e)
 

@@ -235,7 +235,7 @@ class GUIBackend():
         elif the_type == 63:
             seperated_data = data.split('\t'.encode('ascii'))
             result = messagebox.askyesno('Incoming File',
-                'Would you like to accept\n{0} {1}?'.format(
+                'Would you like to accept\n{0} {1} {2}?'.format(
                     seperated_data[1]+seperated_data[2], seperated_data[3]))
             if result:
                 self.send_accepting_file_notification()
