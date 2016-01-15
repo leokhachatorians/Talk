@@ -80,7 +80,7 @@ class ThreadedClient():
                 data = self.gui.sock.recv(8192)
                 if '\n'.encode('ascii') in data:
                     more_data = False
-                    message_buffer += data
+                    message_buffer += data.strip('\n'.encode('ascii'))
                 else:
                     message_buffer += data
             return message_buffer

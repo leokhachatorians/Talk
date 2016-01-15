@@ -1,7 +1,6 @@
 import base64
 import codecs
 import tkinter as tk
-from tkinter import messagebox
 from tkinter import filedialog
 import os
 
@@ -18,40 +17,6 @@ class GUIBackend():
     Any things which involve direct communication or manipulation of sockets will also not be
     housed here. But if it involves preparing the data PRIOR to socket involvement it is acceptable.
     """
-
-    def open_image_selection_dialog(self):
-        """
-        Open a filedialog with a given set of options to get the path of the
-        selected image the user wishes to send.
-
-        Note that there is no catching or preventing of any files which may not
-        exist, the actual widget does that work for us out of the box.
-
-        Returns
-        -------
-        path_to_image : string:
-            The path to our image, will be an empty string if user does
-            not select anything
-        """
-        path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
-            ('JPEG', '*.jpg;*.jpeg'),
-            ('PNG','*.png'),
-            ('BMP','*.bmp'),
-            ("All Files","*.*")))
-        return path_to_image 
-
-    def open_file_selection_dialog(self):
-        file_selection = filedialog.askopenfilename(filetypes=(
-                ("Text Files", "*.txt;"),
-                ("PDF Files", "*.pdf"),
-                ("Microsoft Word Files","*.doc;*.docx;*.dot;"),
-                ("Rich Text Format","*.rtf"),
-                ("Python Files","*.py"),
-                ("C Files","*.c"),
-                ("HTML Files","*.htm;*.html"),
-                ("JavaScript Files","*.js"),
-                ("All Files","*.*")))
-        return file_selection
 
     def send_image_workflow(self):
         """
@@ -71,6 +36,7 @@ class GUIBackend():
             if it_is_an_image:
                 try:
                     data = self.convert_to_b64_data(path_to_image)
+                    self.check_if_valid_image()
                     self.send_image(data)
                     self.display_message('You:')
                     self.display_image(path_to_image)
@@ -128,12 +94,6 @@ class GUIBackend():
             file_size = file_information[2]
 
             self.send_incoming_file_alert(file_name, file_type, file_size, file_path)
-
-            # try:
-            #     data = self.convert_to_b64_data(full_file_path)
-            #     self.send_file(data, file_name, file_type)
-            # except Exception as e:
-            #     self.display_message_box('showerror','Error', e)
         else:
             self.display_message_box('showerror', 'No Connection',
              'You need to have an active Bluetooth connection first.')
@@ -156,9 +116,9 @@ class GUIBackend():
         return [file_name, file_ending, formated_file_size, file_path]
 
     def size_formater(self, size):
-        for unit in ['','kB','MB','GB','TB','PB']:
+        for unit in ['bytes','kB','MB','GB','TB','PB']:
             if abs(size) < 1024.0:
-                return "%3.1f%s" % (size, unit)
+                return "%3.1f %s" % (size, unit)
             size /= 1024.0
 
     def check_if_not_empty_message(self):
@@ -213,7 +173,6 @@ class GUIBackend():
         if chat_image:
             with open('temp.gif', 'wb') as the_image:
                 the_image.write(codecs.decode(data, 'base64_codec'))
-            self.check_if_valid_image()
         else:
             file_name = data[1]
             file_type = data[2]
@@ -234,29 +193,24 @@ class GUIBackend():
             bytes data which was received from our receiving socket.
         """
         the_type = int(data[0])
-        print(the_type)
         data = data[1:]
+        seperated_data = data.split('\t'.encode('ascii'))
         if the_type == 84: # regular message
-            self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
+            self.display_message('Them: {}',data.decode('utf-8'))
         elif the_type == 70: # file message
-            seperated_data = data.split('\t'.encode('ascii'))
+            # seperated_data = data.split('\t'.encode('ascii'))
             self.convert_from_b64_data(seperated_data)
-        elif the_type == 63:
-            seperated_data = data.split('\t'.encode('ascii'))
-            print(seperated_data)
-            result = messagebox.askyesno('Incoming File',
-                'Would you like to accept\n{0} {1}?'.format(
-                    seperated_data[1]+seperated_data[2], seperated_data[3]))
+        elif the_type == 63: # accept/decline file message
+            # seperated_data = data.split('\t'.encode('ascii'))
+            clean_data = [data.decode('utf') for data in seperated_data]
+            result = self.display_decision_box(clean_data)
             if result:
                 self.send_accepting_file_notification(seperated_data[4])
             else:
                 self.send_rejecting_file_notification()
-        elif the_type == 65:
-            seperated_data = data.split('\t'.encode('ascii'))
-            path = seperated_data[1].decode('utf-8').rstrip('\n\n')
-            self.prepare_to_send_file(path)
-            print(path)
-        elif the_type == 82:
+        elif the_type == 65: # User accepted our file message
+            self.prepare_to_send_file(data.decode('utf-8'))
+        elif the_type == 82: # user declined our file message
             self.display_message_box('showerror','Refused','The file was refused.')
         else: # chat image message
             self.convert_from_b64_data(data, chat_image=True)
