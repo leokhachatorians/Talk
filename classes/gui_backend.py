@@ -64,40 +64,47 @@ class GUIBackend():
         display a warning message stating as such.
         """
         path_to_image = self.open_image_selection_dialog()
-        file_information = self.get_file_information(path_to_image)
-        if file_information[0] == 'Image':
-            try:
-                data = self.image_to_b64_data(path_to_image)
-                self.b64_data_to_image(data)
-                self.send_image(data)
-                self.display_message('You:')
-                self.display_image(path_to_image)
-            except tk.TclError:
-                self.display_message_box('showerror', 'Error', 'Invalid Image')
-            except FileNotFoundError:
-                pass
+        file_information = self.get_file_information(path_to_image, 'Image')
+        if self.sock:
+            if file_information[0] == 'Image':
+                try:
+                    data = self.image_to_b64_data(path_to_image)
+                    self.b64_data_to_image(data)
+                    self.send_image(data)
+                    self.display_message('You:')
+                    self.display_image(path_to_image)
+                except tk.TclError:
+                    self.display_message_box('showerror', 'Error', 'Invalid Image')
+                except FileNotFoundError:
+                    pass
+            else:
+                self.display_message_box('showerror', 'Not an Image',
+                 'File selected was not an image. If you want to send a file use \'Send File\'')
+        else:
+            self.display_message_box('showerror', 'No Connection',
+             'You need to have an active Bluetooth connection first.')
 
     def send_file_workflow(self):
         path_to_file = self.open_file_selection_dialog()
-        file_information = self.get_file_information(path_to_file)
+        file_information = self.get_file_information(path_to_file, 'File')
         file_name = file_information[1]
         file_type = file_information[2]
         full_file_path = file_information[3]
         if file_information[0] == 'File':
             try:
-                data = self.file_to_binary_data(full_file_path)
+                data = self.file_to_b64_data(full_file_path)
                 self.send_file(data, file_name, file_type)
             except Exception as e:
                 print(e)
 
-    def get_file_information(self, file_path):
+    def get_file_information(self, file_path, file_type):
         file_name = file_path.split('/')[-1].split('.')[0]
         file_ending = '.' + file_path.split('/')[-1].split('.')[1]
-        image_path_endings = ['.jpg','.gif','.png','.bmp','.jpeg']
+        # image_path_endings = ['.jpg','.gif','.png','.bmp','.jpeg']
 
-        if file_ending in image_path_endings:
+        if file_type == 'Image':
             return ['Image', file_name, file_ending, file_path]
-        else:
+        elif file_type == 'File':
             return ['File', file_name, file_ending, file_path]
 
     def check_if_not_empty_message(self):
@@ -118,6 +125,18 @@ class GUIBackend():
         with open(full_file_path, 'rb') as f:
             data = f.read()
         return data
+
+    def file_to_b64_data(self, full_file_path):
+        with open(full_file_path, 'rb') as f:
+            data = base64.b64encode(f.read())
+        return data
+
+    def b64_data_to_file(self, seperated_data):
+        file_name = seperated_data[1]
+        file_type = seperated_data[2]
+        data = seperated_data[3]
+        with open(file_name + file_type, 'wb') as f:
+            f.write(codecs.decode(data, 'base64_codec'))
 
     def binary_data_to_file(self, seperated_data):
         file_name = seperated_data[1]
@@ -194,7 +213,7 @@ class GUIBackend():
             self.display_message('Them: {}',data.decode('utf-8').rstrip('\n'))
         elif the_type == 70: # file message
             seperated_data = data.split('\t'.encode('ascii'))
-            self.binary_data_to_file(seperated_data)
+            self.b64_data_to_file(seperated_data)
         else:
             self.b64_data_to_image(data)
             self.display_message('Them:')
