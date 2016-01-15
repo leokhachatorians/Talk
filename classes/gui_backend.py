@@ -85,7 +85,7 @@ class GUIBackend():
         except tk.TclError:
             raise
 
-    def send_file_workflow(self):
+    def prepare_incoming_file_alert(self):
         if self.sock:
             file_path = self.open_file_selection_dialog()
             file_information = self.prepare_file_information(file_path)
@@ -192,25 +192,26 @@ class GUIBackend():
         data : bytes 
             bytes data which was received from our receiving socket.
         """
-        the_type = int(data[0])
+        the_message_type = int(data[0])
         data = data[1:]
+
+        # split the data into a list to peice together the file
+        # used only for sending files
         seperated_data = data.split('\t'.encode('ascii'))
-        if the_type == 84: # regular message
+
+        if the_message_type == 84: # regular message
             self.display_message('Them: {}',data.decode('utf-8'))
-        elif the_type == 70: # file message
-            # seperated_data = data.split('\t'.encode('ascii'))
+        elif the_message_type == 70: # file message
             self.convert_from_b64_data(seperated_data)
-        elif the_type == 63: # accept/decline file message
-            # seperated_data = data.split('\t'.encode('ascii'))
-            clean_data = [data.decode('utf') for data in seperated_data]
-            result = self.display_decision_box(clean_data)
+        elif the_message_type == 63: # accept/decline file message
+            result = self.display_decision_box(seperated_data)
             if result:
                 self.send_accepting_file_notification(seperated_data[4])
             else:
                 self.send_rejecting_file_notification()
-        elif the_type == 65: # User accepted our file message
+        elif the_message_type == 65: # User accepted our file message
             self.prepare_to_send_file(data.decode('utf-8'))
-        elif the_type == 82: # user declined our file message
+        elif the_message_type == 82: # user declined our file message
             self.display_message_box('showerror','Refused','The file was refused.')
         else: # chat image message
             self.convert_from_b64_data(data, chat_image=True)

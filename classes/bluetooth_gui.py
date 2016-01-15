@@ -61,7 +61,7 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         self.chat_menu.add_command(label='Send Image',
             command=self.send_image_workflow)
         self.chat_menu.add_command(label='Send File',
-            command=self.send_file_workflow)
+            command=self.prepare_incoming_file_alert)
         self.chat_menu.add_command(label='Clear Chat',
             command=self.clear_chat_display)
 
@@ -206,6 +206,7 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         getattr(messagebox, the_type)(title, text)
 
     def display_decision_box(self, data):
+        data = [chunk.decode('utf') for chunk in data]
         file_name_and_type = data[1] + data[2]
         file_size = data[3]
         decision = messagebox.askyesno('Incoming File',
