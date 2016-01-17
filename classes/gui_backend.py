@@ -2,6 +2,8 @@ import base64
 import codecs
 import tkinter as tk
 import os
+import queue
+import shutil
 
 class GUIBackend():
     """This is a class which our GUI inherits from. 
@@ -87,8 +89,8 @@ class GUIBackend():
     def prepare_incoming_file_alert(self):
         if self.sock:
             file_path = self.open_file_selection_dialog()
-            file_information = self.prepare_file_information(file_path)
-            file_name, file_size = file_information[0:2]
+            info = self.prepare_file_information(file_path)
+            file_name, file_size = info[0], info[1]
 
             self.send_incoming_file_alert(file_name, file_size, file_path)
         else:
@@ -97,8 +99,8 @@ class GUIBackend():
 
     def prepare_to_send_file(self, file_path):
         if self.sock:
-            file_information = self.prepare_file_information(file_path)
-            file_name = file_information[0]
+            info = self.prepare_file_information(file_path)
+            file_name = info[0]
             data = self.convert_to_b64_data(file_path)
             self.send_file(data, file_name)
 
@@ -149,7 +151,7 @@ class GUIBackend():
             encoded_data = base64.b64encode(date.read())
         return encoded_data
 
-    def convert_from_b64_data(self, data, chat_image=False):
+    def convert_from_b64_and_save_to_disk(self, data, chat_image=False):
         """
         Convert the base64 encoded data into binary data.
 
@@ -165,14 +167,43 @@ class GUIBackend():
             Set True to display the image and False to save the file as is.
         """
         if chat_image:
-            with open('temp.gif', 'wb') as the_image:
-                the_image.write(codecs.decode(data, 'base64_codec'))
+            file_name = 'temp.gif'
         else:
-            file_name = data[1]
-            file_type = data[2]
-            data = data[3]
-            with open(file_name + file_type, 'wb') as the_file:
-                the_file.write(codecs.decode(data, 'base64_codec'))
+            file_name, data = data[1], data[2]
+            file_name = self.rename_file_if_already_exists(file_name)
+
+        with open(file_name, 'wb') as the_file:
+            the_file.write(codecs.decode(data, 'base64_codec'))
+
+    def rename_file_if_already_exists(self, file_name):
+        """
+        When receiving a file, check to see if the file already exists
+        within the directory. If it does, append '(Copy i)', where i is the
+        ith copy of the file, to the end of the file name, before the extension.
+
+        Regardless if the filename exists in the directory, return 'copy',
+        as it will either be the same filename or the new one anyway.
+
+        Parameters
+        ----------
+        file_name : string
+            The file name to check
+
+        Returns
+        -------
+        copy : string
+            The modified/original filename we created
+        """
+        file_name = file_name.decode('utf8')
+        copy = file_name
+        count = 1
+        while os.path.isfile(copy):
+            copy = file_name.split('.')
+            copy.insert(1, '.')
+            copy.insert(1, '(Copy {0})'.format(count))
+            count += 1
+        copy = ''.join(copy)
+        return copy
         
     def manage_received_data(self, data):
         """
@@ -180,6 +211,13 @@ class GUIBackend():
         byte. Depending on what value appended prior the sending of the data,
         there will be further steps in order to correctly display the message;
         if it's an image vs a file vs a text vs etc.
+
+        84 == regular text message
+        70 == file message
+        73 == image message
+        63 == incoming file alert message
+        65 == user accepted file
+        82 == user rejected file
 
         Parameters
         ----------
@@ -192,23 +230,23 @@ class GUIBackend():
         # split the data into a list to peice together the file
         # used only for sending files
         seperated_data = data.split('\t'.encode('ascii'))
-
-        if the_message_type == 84: # regular message
+        
+        if the_message_type == 84: 
             self.display_message('Them: {}',data.decode('utf-8'))
-        elif the_message_type == 70: # file message
-            self.convert_from_b64_data(seperated_data)
-        elif the_message_type == 63: # accept/decline file message
+        elif the_message_type == 70:
+            self.convert_from_b64_and_save_to_disk(seperated_data)
+        elif the_message_type == 63:
             result = self.display_decision_box(seperated_data)
             if result:
-                self.send_accepting_file_notification(seperated_data[4])
+                self.send_accepting_file_notification(seperated_data[3])
             else:
                 self.send_rejecting_file_notification()
-        elif the_message_type == 65: # User accepted our file message
+        elif the_message_type == 65:
             self.prepare_to_send_file(data.decode('utf-8'))
-        elif the_message_type == 82: # user declined our file message
+        elif the_message_type == 82:
             self.display_message_box('showerror','Refused','The file was refused.')
-        else: # chat image message
-            self.convert_from_b64_data(data, chat_image=True)
+        elif the_message_type == 73:
+            self.convert_from_b64_and_save_to_disk(data, chat_image=True)
             self.display_message('Them:')
             self.display_image('temp.gif')
 

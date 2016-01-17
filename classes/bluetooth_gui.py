@@ -207,9 +207,21 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         getattr(messagebox, the_type)(title, text)
 
     def display_decision_box(self, data):
-        data = [chunk.decode('utf') for chunk in data]
-        file_name = data[1]
-        file_size = data[2]
+        """
+        Display the tkinter 'yes or no' box and return the
+        result.
+
+        Parameters
+        ----------
+        data : list
+            This contains the file information 
+
+        Returns
+        -------
+        decision : bool
+        """
+        data = [chunk.decode('utf8') for chunk in data]
+        file_name, file_size = data[1], data[2]
         decision = messagebox.askyesno('Incoming File',
                     'Would you like to accept\n{0}\nSize: {1}?'.format(
                         file_name, file_size))
@@ -237,16 +249,7 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         return path_to_image 
 
     def open_file_selection_dialog(self):
-        file_selection = filedialog.askopenfilename(filetypes=(
-                ("Text Files", "*.txt;"),
-                ("PDF Files", "*.pdf"),
-                ("Microsoft Word Files","*.doc;*.docx;*.dot;"),
-                ("Rich Text Format","*.rtf"),
-                ("Python Files","*.py"),
-                ("C Files","*.c"),
-                ("HTML Files","*.htm;*.html"),
-                ("JavaScript Files","*.js"),
-                ("All Files","*.*")))
+        file_selection = filedialog.askopenfilename(filetypes=[("All Files","*.*")])
         return file_selection
 
     def paste_over_selection(self, event=None):

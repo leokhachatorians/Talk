@@ -3,7 +3,6 @@ import bluetooth as bt
 import threading
 import queue
 import sys
-import time
 from classes.bluetooth_gui import BluetoothChatGUI
 
 class ThreadedClient():

@@ -45,12 +45,12 @@ class BluetoothBackend():
         if self.sock:
             try:
                 if self.check_if_not_empty_message():
-                    self.display_message('You: {}', self.chat_send.get())
-                    self.sock.sendall('T' + self.chat_send.get() + '\n')
+                    message = self.chat_send.get()
+                    self.clear_chat_send_text()
+                    self.display_message('You: {}', message)
+                    self.sock.sendall('T' + message + '\n')
             except bt.btcommon.BluetoothError as e:
                 self.the_connection_was_lost()
-            finally:
-                self.clear_chat_send_text()
 
     def send_image(self, b64_data):
         """
