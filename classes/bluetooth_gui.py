@@ -208,11 +208,11 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
 
     def display_decision_box(self, data):
         data = [chunk.decode('utf') for chunk in data]
-        file_name_and_type = data[1] + data[2]
-        file_size = data[3]
+        file_name = data[1]
+        file_size = data[2]
         decision = messagebox.askyesno('Incoming File',
                     'Would you like to accept\n{0}\nSize: {1}?'.format(
-                        file_name_and_type, file_size))
+                        file_name, file_size))
         return decision
 
     def open_image_selection_dialog(self):

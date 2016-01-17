@@ -15,6 +15,7 @@ class BluetoothBackend():
     """
     sock = None
     server = None
+    delimiter = '\n'.encode('ascii')
 
     def discover_nearby_devices(self):
         """
@@ -64,22 +65,22 @@ class BluetoothBackend():
         """
         if self.sock:
             try:
-                self.sock.send('I'.encode('ascii') + b64_data + '\n'.encode('ascii'))
+                self.sock.send('I'.encode('ascii') + b64_data + self.delimiter)
             except bt.btcommon.BluetoothError:
                 self.the_connection_was_lost()
 
-    def send_incoming_file_alert(self, file_name, file_type, file_size, file_path):
+    def send_incoming_file_alert(self, file_name, file_size, file_path):
         if self.sock:
-            file_information = ('\t' + file_name + '\t' + file_type + '\t' + file_size + '\t' + file_path).encode('ascii')
+            file_information = ('\t' + file_name + '\t' + file_size + '\t' + file_path).encode('ascii')
             try:
-                self.sock.send('?'.encode('ascii') + file_information + '\n'.encode('ascii'))
+                self.sock.send('?'.encode('ascii') + file_information + self.delimiter)
             except bt.btcommon.BluetoothError:
                 self.the_connection_was_lost()
 
     def send_accepting_file_notification(self, file_path):
         if self.sock:
             try:
-                self.sock.send(('A').encode('ascii') + file_path + '\n'.encode('ascii'))
+                self.sock.send(('A').encode('ascii') + file_path + self.delimiter)
             except bt.btcommon.BluetoothError:
                 self.the_connection_was_lost()
 
@@ -90,11 +91,11 @@ class BluetoothBackend():
             except bt.btcommon.BluetoothError:
                 self.the_connection_was_lost()
 
-    def send_file(self, data, file_name, file_type):
+    def send_file(self, data, file_name):
         if self.sock:
-            file_information = ('\t' + file_name + '\t' + file_type + '\t').encode('ascii')
+            file_information = ('\t' + file_name + '\t').encode('ascii')
             try:
-                self.sock.send('F'.encode('ascii') + file_information + data + '\n'.encode('ascii'))
+                self.sock.send('F'.encode('ascii') + file_information + data + self.delimiter)
             except bt.btcommon.BluetoothError:
                 self.the_connection_was_lost()
 

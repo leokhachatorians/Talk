@@ -88,11 +88,9 @@ class GUIBackend():
         if self.sock:
             file_path = self.open_file_selection_dialog()
             file_information = self.prepare_file_information(file_path)
-            file_name = file_information[0]
-            file_type = file_information[1]
-            file_size = file_information[2]
+            file_name, file_size = file_information[0:2]
 
-            self.send_incoming_file_alert(file_name, file_type, file_size, file_path)
+            self.send_incoming_file_alert(file_name, file_size, file_path)
         else:
             self.display_message_box('showerror', 'No Connection',
              'You need to have an active Bluetooth connection first.')
@@ -101,18 +99,15 @@ class GUIBackend():
         if self.sock:
             file_information = self.prepare_file_information(file_path)
             file_name = file_information[0]
-            file_type = file_information[1]
-
             data = self.convert_to_b64_data(file_path)
-            self.send_file(data, file_name, file_type)
+            self.send_file(data, file_name)
 
     def prepare_file_information(self, file_path):
-        file_name = file_path.split('/')[-1].split('.')[0]
-        file_ending = '.' + file_path.split('/')[-1].split('.')[1]
+        file_name = file_path.split('/')[-1]
         unformatted_file_size = int(str(os.stat(file_path).st_size).strip('L'))
         formated_file_size = self.size_formater(unformatted_file_size)
 
-        return [file_name, file_ending, formated_file_size, file_path]
+        return (file_name, formated_file_size, file_path)
 
     def size_formater(self, size):
         for unit in ['bytes','kB','MB','GB','TB','PB']:
@@ -134,9 +129,9 @@ class GUIBackend():
         if self.chat_send.get():
             return True
 
-    def convert_to_b64_data(self, full_file_path):
+    def convert_to_b64_data(self, file_path):
         """
-        Given an image path, write the data in a base64 endcoded codec
+        Given a file path, write the data in a base64 endcoded codec
         and return the data
 
         Parameters
@@ -150,9 +145,9 @@ class GUIBackend():
             Our file converted into base64 bytes
 
         """
-        with open(full_file_path, 'rb') as img:
-            data = base64.b64encode(img.read())
-        return data
+        with open(file_path, 'rb') as date:
+            encoded_data = base64.b64encode(date.read())
+        return encoded_data
 
     def convert_from_b64_data(self, data, chat_image=False):
         """
