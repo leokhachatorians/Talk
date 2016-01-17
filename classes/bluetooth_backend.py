@@ -47,8 +47,7 @@ class BluetoothBackend():
                     self.display_message('You: {}', self.chat_send.get())
                     self.sock.sendall('T' + self.chat_send.get() + '\n')
             except bt.btcommon.BluetoothError as e:
-                self.display_message_box('showerror','Error','The connection was lost')
-                self.close_connection()
+                self.the_connection_was_lost()
             finally:
                 self.clear_chat_send_text()
 
@@ -67,7 +66,7 @@ class BluetoothBackend():
             try:
                 self.sock.send('I'.encode('ascii') + b64_data + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError:
-                print(e)
+                self.the_connection_was_lost()
 
     def send_incoming_file_alert(self, file_name, file_type, file_size, file_path):
         if self.sock:
@@ -75,24 +74,21 @@ class BluetoothBackend():
             try:
                 self.sock.send('?'.encode('ascii') + file_information + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError:
-                self.display_message_box('showerror','Error','The connection was lost')
-                self.close_connection()
+                self.the_connection_was_lost()
 
     def send_accepting_file_notification(self, file_path):
         if self.sock:
             try:
                 self.sock.send(('A').encode('ascii') + file_path + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError:
-                self.display_message_box('showerror','Error','The connection was lost')
-                self.close_connection()
+                self.the_connection_was_lost()
 
     def send_rejecting_file_notification(self):
         if self.sock:
             try:
                 self.sock.send(('R' + '\n').encode('ascii'))
             except bt.btcommon.BluetoothError:
-                self.display_message_box('showerror','Error','The connection was lost')
-                self.close_connection()
+                self.the_connection_was_lost()
 
     def send_file(self, data, file_name, file_type):
         if self.sock:
@@ -100,8 +96,11 @@ class BluetoothBackend():
             try:
                 self.sock.send('F'.encode('ascii') + file_information + data + '\n'.encode('ascii'))
             except bt.btcommon.BluetoothError:
-                self.display_message_box('showerror','Error','The connection was lost')
-                self.close_connection()
+                self.the_connection_was_lost()
+
+    def the_connection_was_lost(self):
+        self.display_message_box('showerror','Error','The connection was lost')
+        self.close_connection()
 
     def close_server(self):
         """

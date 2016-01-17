@@ -1,7 +1,6 @@
 import base64
 import codecs
 import tkinter as tk
-from tkinter import filedialog
 import os
 
 class GUIBackend():

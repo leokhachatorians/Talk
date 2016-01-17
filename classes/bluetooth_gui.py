@@ -31,6 +31,8 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
             will be shut down, and that there is to be no more checking for messages.
         """
         self.root = root
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0,weight=1)
         self.message_queue = message_queue
         self.end_gui = end_gui
         self.start_message_awaiting = start_message_awaiting
@@ -84,27 +86,26 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         # Chat Receive Display
         self.chat_display = tkScrollText.ScrolledText(root)
         self.chat_display.configure(state='disabled',font='helvetica 14')
-        self.chat_display.pack(ipady=3)
         self.chat_display.grid(row=0, 
             column=0, 
             rowspan=10,
-            columnspan=10)
+            columnspan=10,
+            sticky="nswe")
         self.chat_display.bind("<1>", lambda event: self.chat_display.focus_set())
 
         # Chat Send Display
         self.chat_send = tk.Entry(root)
-        self.chat_send.pack(ipady=10)
         self.chat_send.grid(row=11,
             column=0,
             columnspan=9,
-            sticky=tk.W+tk.E+tk.N+tk.S)
+            sticky="nswe")
         self.chat_send.focus_set()
 
         # Send Button
         self.send_button = tk.Button(root, text="Enter", command=self.send_message, state="disabled")
         self.send_button.grid(row=11,
             column=9,
-            sticky=tk.W+tk.E+tk.N+tk.S)
+            sticky="nwse")
 
         # Rightclick Menu
         self.make_right_click_menu(self.root)
