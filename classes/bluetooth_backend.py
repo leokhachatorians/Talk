@@ -1,4 +1,5 @@
 import bluetooth as bt
+from functools import wraps
 
 class BluetoothBackend():
     """
@@ -17,6 +18,16 @@ class BluetoothBackend():
     server = None
     delimiter = '\n'.encode('ascii')
 
+    def bluetooth_checker(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if args[0].sock:
+                try:
+                    f(*args,**kwargs)
+                except bt.btcommon.BluetoothError:
+                    args[0].the_connection_was_lost()
+        return wrapper
+
     def discover_nearby_devices(self):
         """
         Scan for any nearby devices and display their address. If nothing was found,
@@ -31,6 +42,7 @@ class BluetoothBackend():
         else:
             self.display_message_box('showerror', 'Error', 'Unable to find any devices')
 
+    @bluetooth_checker
     def send_message(self, event=None):
         """
         If there is a current socket send a simple text message, if
@@ -42,16 +54,13 @@ class BluetoothBackend():
         event : tkinter event
             the event thing when the users uses the <Return> key
         """
-        if self.sock:
-            try:
-                if self.check_if_not_empty_message():
-                    message = self.chat_send.get()
-                    self.clear_chat_send_text()
-                    self.display_message('You: {}', message)
-                    self.sock.sendall('T' + message + '\n')
-            except bt.btcommon.BluetoothError as e:
-                self.the_connection_was_lost()
+        if self.check_if_not_empty_message():
+            message = self.chat_send.get()
+            self.clear_chat_send_text()
+            self.display_message('You: {}', message)
+            self.sock.sendall('T' + message + '\n')
 
+    @bluetooth_checker
     def send_image(self, b64_data):
         """
         Send the specified image with an encoded 'I' appended at the front and
@@ -63,41 +72,28 @@ class BluetoothBackend():
         b64_data : base64_endcoded data
             The binary image data
         """
-        if self.sock:
-            try:
-                self.sock.send('I'.encode('ascii') + b64_data + self.delimiter)
-            except bt.btcommon.BluetoothError:
-                self.the_connection_was_lost()
+        self.sock.send('I'.encode('ascii') + b64_data + self.delimiter)
 
+    @bluetooth_checker
     def send_incoming_file_alert(self, file_name, file_size, file_path):
-        if self.sock:
-            file_information = ('\t' + file_name + '\t' + file_size + '\t' + file_path).encode('ascii')
-            try:
-                self.sock.send('?'.encode('ascii') + file_information + self.delimiter)
-            except bt.btcommon.BluetoothError:
-                self.the_connection_was_lost()
+        file_information = ('\t' + file_name + '\t' + file_size + '\t' + file_path).encode('ascii')
+        self.sock.send('?'.encode('ascii') + file_information + self.delimiter)
 
+    @bluetooth_checker
     def send_accepting_file_notification(self, file_path):
-        if self.sock:
-            try:
-                self.sock.send(('A').encode('ascii') + file_path + self.delimiter)
-            except bt.btcommon.BluetoothError:
-                self.the_connection_was_lost()
+        self.sock.send(('A').encode('ascii') + file_path + self.delimiter)
 
+    @bluetooth_checker
     def send_rejecting_file_notification(self):
-        if self.sock:
-            try:
-                self.sock.send(('R' + '\n').encode('ascii'))
-            except bt.btcommon.BluetoothError:
-                self.the_connection_was_lost()
+        self.sock.send(('R' + '\n').encode('ascii'))
 
+    @bluetooth_checker
     def send_file(self, data, file_name):
-        if self.sock:
-            file_information = ('\t' + file_name + '\t').encode('ascii')
-            try:
-                self.sock.send('F'.encode('ascii') + file_information + data + self.delimiter)
-            except bt.btcommon.BluetoothError:
-                self.the_connection_was_lost()
+        file_information = ('\t' + file_name + '\t').encode('ascii')
+
+    @bluetooth_checker
+    def send_user_left_notification(self):
+        self.sock.send('E'.encode('ascii'))
 
     def the_connection_was_lost(self):
         self.display_message_box('showerror','Error','The connection was lost')

@@ -3,7 +3,6 @@ import codecs
 import tkinter as tk
 import os
 import queue
-import shutil
 
 class GUIBackend():
     """This is a class which our GUI inherits from. 
@@ -212,13 +211,14 @@ class GUIBackend():
         there will be further steps in order to correctly display the message;
         if it's an image vs a file vs a text vs etc.
 
-        84 == regular text message
-        70 == file message
-        73 == image message
         63 == incoming file alert message
         65 == user accepted file
+        69 == user left chat
+        70 == file message
+        73 == image message
         82 == user rejected file
-
+        84 == regular text message
+        
         Parameters
         ----------
         data : bytes 
@@ -230,12 +230,8 @@ class GUIBackend():
         # split the data into a list to peice together the file
         # used only for sending files
         seperated_data = data.split('\t'.encode('ascii'))
-        
-        if the_message_type == 84: 
-            self.display_message('Them: {}',data.decode('utf-8'))
-        elif the_message_type == 70:
-            self.convert_from_b64_and_save_to_disk(seperated_data)
-        elif the_message_type == 63:
+
+        if the_message_type == 63:
             result = self.display_decision_box(seperated_data)
             if result:
                 self.send_accepting_file_notification(seperated_data[3])
@@ -243,12 +239,19 @@ class GUIBackend():
                 self.send_rejecting_file_notification()
         elif the_message_type == 65:
             self.prepare_to_send_file(data.decode('utf-8'))
-        elif the_message_type == 82:
-            self.display_message_box('showerror','Refused','The file was refused.')
+        elif the_message_type == 69:
+            self.display_message("User has disconnected.")
+            self.close_connection()
+        elif the_message_type == 70:
+            self.convert_from_b64_and_save_to_disk(seperated_data)
         elif the_message_type == 73:
             self.convert_from_b64_and_save_to_disk(data, chat_image=True)
             self.display_message('Them:')
-            self.display_image('temp.gif')
+            self.display_image('temp.gif')       
+        elif the_message_type == 82:
+            self.display_message_box('showerror','Refused','The file was refused.')
+        elif the_message_type == 84:
+            self.display_message('Them: {}',data.decode('utf-8'))
 
     def check_message_queue(self):
         """
