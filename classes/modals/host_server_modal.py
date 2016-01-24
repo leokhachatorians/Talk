@@ -68,5 +68,4 @@ class HostServerWindow(base_modal.ModalWindow):
 				self.sock = None
 				self.server = None
 				self.error_message = 'No connection before cutoff time of {0} seconds'.format(self.time_out.get())
-			finally:
-				self.cancel()
+			self.cancel()

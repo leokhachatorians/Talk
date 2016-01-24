@@ -3,6 +3,7 @@ import codecs
 import tkinter as tk
 import os
 import queue
+from utils.wrapper import check_bluetooth
 
 class GUIBackend():
     """This is a class which our GUI inherits from. 
@@ -18,6 +19,7 @@ class GUIBackend():
     housed here. But if it involves preparing the data PRIOR to socket involvement it is acceptable.
     """
 
+    @check_bluetooth
     def send_image_workflow(self):
         """
         The main workflow needed to check if the image is compatiable with Tkinter,
@@ -32,24 +34,20 @@ class GUIBackend():
         """
         path_to_image = self.open_image_selection_dialog()
         it_is_an_image = self.check_if_actually_image(path_to_image)
-        if self.sock:
-            if it_is_an_image:
-                try:
-                    data = self.convert_to_b64_data(path_to_image)
-                    self.check_if_valid_image()
-                    self.send_image(data)
-                    self.display_message('You:')
-                    self.display_image(path_to_image)
-                except tk.TclError:
-                    self.display_message_box('showerror', 'Error', 'Invalid Image')
-                except FileNotFoundError:
-                    pass
-            else:
-                self.display_message_box('showerror', 'Not an Image',
-                 'File selected was not an image. If you want to send a file use \'Send File\'')
+        if it_is_an_image:
+            try:
+                data = self.convert_to_b64_data(path_to_image)
+                self.check_if_valid_image()
+                self.send_image(data)
+                self.display_message('You:')
+                self.display_image(path_to_image)
+            except tk.TclError:
+                self.display_message_box('showerror', 'Error', 'Invalid Image')
+            except FileNotFoundError:
+                pass
         else:
-            self.display_message_box('showerror', 'No Connection',
-             'You need to have an active Bluetooth connection first.')
+            self.display_message_box('showerror', 'Not an Image',
+             'File selected was not an image. If you want to send a file use \'Send File\'')
 
     def check_if_actually_image(self, file_path):
         """
@@ -85,23 +83,19 @@ class GUIBackend():
         except tk.TclError:
             raise
 
+    @check_bluetooth
     def prepare_incoming_file_alert(self):
-        if self.sock:
-            file_path = self.open_file_selection_dialog()
-            info = self.prepare_file_information(file_path)
-            file_name, file_size = info[0], info[1]
+        file_path = self.open_file_selection_dialog()
+        info = self.prepare_file_information(file_path)
+        file_name, file_size = info[0], info[1]
 
-            self.send_incoming_file_alert(file_name, file_size, file_path)
-        else:
-            self.display_message_box('showerror', 'No Connection',
-             'You need to have an active Bluetooth connection first.')
+        self.send_incoming_file_alert(file_name, file_size, file_path)
 
     def prepare_to_send_file(self, file_path):
-        if self.sock:
-            info = self.prepare_file_information(file_path)
-            file_name = info[0]
-            data = self.convert_to_b64_data(file_path)
-            self.send_file(data, file_name)
+        info = self.prepare_file_information(file_path)
+        file_name = info[0]
+        data = self.convert_to_b64_data(file_path)
+        self.send_file(data, file_name)
 
     def prepare_file_information(self, file_path):
         file_name = file_path.split('/')[-1]
@@ -169,7 +163,9 @@ class GUIBackend():
             file_name = 'temp.gif'
         else:
             file_name, data = data[1], data[2]
+            print(file_name, data)
             file_name = self.rename_file_if_already_exists(file_name)
+            print(file_name)
 
         with open(file_name, 'wb') as the_file:
             the_file.write(codecs.decode(data, 'base64_codec'))

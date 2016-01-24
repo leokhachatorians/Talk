@@ -64,5 +64,4 @@ class ConnectToServerWindow(base_modal.ModalWindow):
 			except bt.btcommon.BluetoothError as e:
 				self.sock = None
 				self.error_message = e
-			finally:
-				self.cancel()
+			self.cancel()

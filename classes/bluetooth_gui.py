@@ -111,7 +111,7 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
         self.make_right_click_menu(self.root)
 
         # Bind the 'X' thing to do the exit workflow
-        # self.root.protocol('WM_DELETE_WINDOW', self.send_user_left_notification)
+        self.root.protocol('WM_DELETE_WINDOW', self.send_user_left_notification)
 
     def disable_chat_display_state(self):
         """

@@ -1,5 +1,5 @@
 import bluetooth as bt
-from functools import wraps
+from utils.wrapper import check_bluetooth
 
 class BluetoothBackend():
     """
@@ -18,16 +18,6 @@ class BluetoothBackend():
     server = None
     delimiter = '\n'.encode('ascii')
 
-    def bluetooth_checker(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if args[0].sock:
-                try:
-                    f(*args,**kwargs)
-                except bt.btcommon.BluetoothError:
-                    args[0].the_connection_was_lost()
-        return wrapper
-
     def discover_nearby_devices(self):
         """
         Scan for any nearby devices and display their address. If nothing was found,
@@ -42,7 +32,7 @@ class BluetoothBackend():
         else:
             self.display_message_box('showerror', 'Error', 'Unable to find any devices')
 
-    @bluetooth_checker
+    @check_bluetooth
     def send_message(self, event=None):
         """
         If there is a current socket send a simple text message, if
@@ -60,7 +50,7 @@ class BluetoothBackend():
             self.display_message('You: {}', message)
             self.sock.sendall('T' + message + '\n')
 
-    @bluetooth_checker
+    @check_bluetooth
     def send_image(self, b64_data):
         """
         Send the specified image with an encoded 'I' appended at the front and
@@ -74,26 +64,30 @@ class BluetoothBackend():
         """
         self.sock.send('I'.encode('ascii') + b64_data + self.delimiter)
 
-    @bluetooth_checker
+    @check_bluetooth
     def send_incoming_file_alert(self, file_name, file_size, file_path):
         file_information = ('\t' + file_name + '\t' + file_size + '\t' + file_path).encode('ascii')
         self.sock.send('?'.encode('ascii') + file_information + self.delimiter)
 
-    @bluetooth_checker
+    @check_bluetooth
     def send_accepting_file_notification(self, file_path):
         self.sock.send(('A').encode('ascii') + file_path + self.delimiter)
 
-    @bluetooth_checker
+    @check_bluetooth
     def send_rejecting_file_notification(self):
         self.sock.send(('R' + '\n').encode('ascii'))
 
-    @bluetooth_checker
+    @check_bluetooth
     def send_file(self, data, file_name):
         file_information = ('\t' + file_name + '\t').encode('ascii')
+        self.sock.send('F'.encode('ascii') + file_information + data + self.delimiter)
 
-    @bluetooth_checker
     def send_user_left_notification(self):
-        self.sock.send('E'.encode('ascii'))
+        if self.sock:
+            self.sock.send('E'.encode('ascii'))
+            exit()
+        else:
+            exit()
 
     def the_connection_was_lost(self):
         self.display_message_box('showerror','Error','The connection was lost')
@@ -113,6 +107,7 @@ class BluetoothBackend():
         self.sock.close()
         self.sock = None
 
+    @check_bluetooth
     def close_connection(self):
         """
         Close the current BlueTooth connection.
@@ -124,15 +119,12 @@ class BluetoothBackend():
         If not, display a message stating that we do not have anything
         currently open.
         """
-        if self.sock:
-            self.end_bluetooth_connection()
-            try:
-                self.close_server()
-            except AttributeError: # Not a server but a client
-                pass
-            finally:
-                self.close_socket()
-                self.display_message('Closed connection')
-                self.disable_send_button()
-        else:
-            self.display_message_box('showinfo','No Connection', 'No connection to close')
+        self.end_bluetooth_connection()
+        try:
+            self.close_server()
+        except AttributeError: # Not a server but a client
+            pass
+        finally:
+            self.close_socket()
+            self.display_message('Closed connection')
+            self.disable_send_button()
