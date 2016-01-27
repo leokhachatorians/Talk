@@ -3,6 +3,7 @@ import codecs
 import tkinter as tk
 import os
 import queue
+from PIL import Image
 from utils.wrapper import check_bluetooth
 
 class GUIBackend():
@@ -36,18 +37,13 @@ class GUIBackend():
         it_is_an_image = self.check_if_actually_image(path_to_image)
         if it_is_an_image:
             try:
-                data = self.convert_to_b64_data(path_to_image)
-                self.check_if_valid_image()
+                self.convert_image_to_gif(path_to_image)
+                data = self.convert_to_b64_data('temp.gif')
                 self.send_image(data)
                 self.display_message('You:')
-                self.display_image(path_to_image)
-            except tk.TclError:
+                self.display_image('temp.gif')
+            except Exception as e:
                 self.display_message_box('showerror', 'Error', 'Invalid Image')
-            except FileNotFoundError:
-                pass
-        else:
-            self.display_message_box('showerror', 'Not an Image',
-             'File selected was not an image. If you want to send a file use \'Send File\'')
 
     def check_if_actually_image(self, file_path):
         """
@@ -62,26 +58,22 @@ class GUIBackend():
         -------
             If the file ending is in the acceptable file endings, return True.
         """
-        file_ending = '.' + file_path.split('/')[-1].split('.')[1]
+        try:
+            file_ending = '.' + file_path.split('/')[-1].split('.')[1]
+        except IndexError:
+            pass
+
         image_path_endings = ['.jpg','.gif','.png','.bmp','.jpeg']
 
         if file_ending in image_path_endings:
             return True
+        else:
+            self.display_message_box('showerror', 'Not an Image',
+                'File selected was not an image. If you want to send a file use \'Send File\'')
 
-    def check_if_valid_image(self):
-        """
-        Check to see if the image in question is compatible
-        with tkinter.
-
-        Raises
-        ------
-        TclError
-            If the image is not compatible
-        """
-        try:
-            image = tk.PhotoImage(file='temp.gif')
-        except tk.TclError:
-            raise
+    def convert_image_to_gif(self, path):
+        im = Image.open(path)
+        im.save('temp.gif','GIF')
 
     @check_bluetooth
     def prepare_incoming_file_alert(self):

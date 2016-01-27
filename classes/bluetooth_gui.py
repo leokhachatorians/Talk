@@ -240,11 +240,11 @@ class BluetoothChatGUI(BluetoothBackend,GUIBackend):
             The path to our image, will be an empty string if user does
             not select anything
         """
-        path_to_image = filedialog.askopenfilename(filetypes=(('GIF','*.gif'),
+        path_to_image = filedialog.askopenfilename(filetypes=(('All Files','*.*'),
             ('JPEG', '*.jpg;*.jpeg'),
             ('PNG','*.png'),
             ('BMP','*.bmp'),
-            ("All Files","*.*")))
+            ("GIF","*.gif")))
         return path_to_image 
 
     def open_file_selection_dialog(self):
