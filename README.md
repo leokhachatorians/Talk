@@ -1,7 +1,7 @@
-# pbChat
+# Talk
 
 ## What is it?
-pbChat is a lightweight BlueTooth chat application built entirely out of Python3 and tkinter. 
+Talk is a lightweight BlueTooth chat application built entirely out of Python3 and tkinter. 
 
 ## Things Left To Do
 * ~~Create ability to host a server~~
@@ -10,7 +10,7 @@ pbChat is a lightweight BlueTooth chat application built entirely out of Python3
 * ~~Breakdown and modularize various GUI widgets/windows/etc~~
 * ~~Smooth shutdown when the other person exits/closes connection~~
 * Better chat (~~images~~, fonts, etc)
-* File transfer
+* ~~File transfer~~
 * ~~Actually add documentation~~
 * Anything else I can think of
 
