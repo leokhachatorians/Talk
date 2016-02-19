@@ -155,10 +155,7 @@ class GUIBackend():
             file_name = 'temp.gif'
         else:
             file_name, data = data[1], data[2]
-            print(file_name, data)
             file_name = self.rename_file_if_already_exists(file_name)
-            print(file_name)
-
         with open(file_name, 'wb') as the_file:
             the_file.write(codecs.decode(data, 'base64_codec'))
 
