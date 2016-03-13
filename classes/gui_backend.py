@@ -77,6 +77,11 @@ class GUIBackend():
 
     @check_bluetooth
     def prepare_incoming_file_alert(self):
+        """
+        Given the selected file, format the name and size 
+        and send out a notification to the connected user
+        that there is a file they can download.
+        """
         file_path = self.open_file_selection_dialog()
         info = self.prepare_file_information(file_path)
         file_name, file_size = info[0], info[1]
@@ -84,12 +89,32 @@ class GUIBackend():
         self.send_incoming_file_alert(file_name, file_size, file_path)
 
     def prepare_to_send_file(self, file_path):
+        """
+        Prepare and send the accepted file to the connected
+        user.
+
+        Parameters
+        ----------
+        file_path : string
+        """
         info = self.prepare_file_information(file_path)
         file_name = info[0]
         data = self.convert_to_b64_data(file_path)
         self.send_file(data, file_name)
 
     def prepare_file_information(self, file_path):
+        """
+        Given a filepath, format the name and size of the file
+        into a list.
+        
+        Parameters
+        ---------
+        file_path : string
+
+        Returns
+        -------
+        tuple : Contains the file name, size, and original path
+        """
         file_name = file_path.split('/')[-1]
         unformatted_file_size = int(str(os.stat(file_path).st_size).strip('L'))
         formated_file_size = self.size_formater(unformatted_file_size)
@@ -223,6 +248,7 @@ class GUIBackend():
             else:
                 self.send_rejecting_file_notification()
         elif the_message_type == 65:
+            self.display_message_box('showinfo', 'Accepted', 'The file was accepted')
             self.prepare_to_send_file(data.decode('utf-8'))
         elif the_message_type == 69:
             self.display_message("User has disconnected.")
